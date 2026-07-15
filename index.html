@@ -4,16 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*, geolocation=*">
-    <title>PharmaField · DEBUG MODE</title>
+    <title>PharmaField · Enterprise Check-In</title>
+    
+    <!-- Bootstrap 5 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Leaflet Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Supabase JS SDK (CRITICAL FIX: Explicitly loaded) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Local Config (Keep API keys out of main repo) -->
+    <script src="config.js"></script>
+
     <style>
-        body { background: #f4f7fc; color: #1e293b; font-family: 'Segoe UI', system-ui, sans-serif; padding: 1rem; }
+        body { background: #f4f7fc; color: #1e293b; font-family: 'Segoe UI', system-ui, sans-serif; padding: 1rem; padding-bottom: 3rem; }
+        .dashboard-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 1.5rem 1rem; border-radius: 0 0 1.5rem 1.5rem; box-shadow: 0 8px 20px rgba(0,0,0,0.15); margin: -1rem -1rem 1.5rem -1rem; text-align: center; }
         .card-api { border: none; border-radius: 1rem; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1rem; }
         .card-header { background: transparent; border-bottom: 1px solid #eee; font-weight: 600; padding: 0.8rem 1rem; }
-        .console-log { background: #0f172a; color: #a5f3fc; border-radius: 8px; padding: 0.8rem; font-family: monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto; }
+        .console-log { background: #0f172a; color: #a5f3fc; border-radius: 8px; padding: 0.8rem; font-family: monospace; font-size: 0.75rem; max-height: 150px; overflow-y: auto; }
         .log-entry { margin-bottom: 4px; border-bottom: 1px solid #1e293b; padding-bottom: 2px; }
         .log-entry.error { color: #f87171; }
         .log-entry.success { color: #34d399; }
@@ -21,20 +30,22 @@
         #map { height: 200px; border-radius: 8px; margin-top: 0.5rem; display: none; }
         .media-preview { max-width: 100%; border-radius: 8px; margin-top: 8px; }
         .action-btn-label { cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .submit-btn { font-size: 1.1rem; font-weight: 700; padding: 0.8rem; }
     </style>
 </head>
 <body>
     <div class="container" id="app">
-        <div class="text-center mb-4">
-            <h1 class="h4"><i class="bi bi-shield-check text-primary"></i> PharmaField · DEBUG</h1>
-            <p class="mb-0 text-muted small">Agent: #8842 | Testing Core Functions</p>
+        <div class="dashboard-header">
+            <h1 class="h4 mb-1"><i class="bi bi-shield-check"></i> PharmaField</h1>
+            <p class="mb-0 opacity-75 small">Enterprise Check-In & Proof of Work</p>
+            <p class="mb-0 small mt-1">Agent ID: <strong id="agentDisplay">Loading...</strong></p>
         </div>
 
         <!-- GPS Card -->
         <div class="card card-api">
             <div class="card-header"><i class="bi bi-geo-alt-fill text-danger"></i> 1. Site Verification (GPS)</div>
             <div class="card-body">
-                <button class="btn btn-primary w-100 mb-2" onclick="testGPS()">📍 Capture Current Location</button>
+                <button class="btn btn-primary w-100 mb-2" onclick="captureGPS()">📍 Capture Current Location</button>
                 <div id="gpsStatus" class="small text-muted">Waiting for action...</div>
                 <div id="map"></div>
             </div>
@@ -44,7 +55,7 @@
         <div class="card card-api">
             <div class="card-header"><i class="bi bi-camera-fill text-primary"></i> 2. Site Photo Proof</div>
             <div class="card-body">
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="d-none" onchange="testCamera(this)">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="d-none" onchange="handlePhoto(this)">
                 <label for="cameraInput" class="btn btn-outline-primary w-100 mb-2 action-btn-label">
                     <i class="bi bi-camera"></i> Open Camera / Choose Photo
                 </label>
@@ -52,28 +63,63 @@
             </div>
         </div>
 
-        <!-- Microphone Card (NATIVE FALLBACK METHOD) -->
+        <!-- Microphone Card -->
         <div class="card card-api">
             <div class="card-header"><i class="bi bi-mic-fill text-warning"></i> 3. Client Conversation Summary</div>
             <div class="card-body">
-                <p class="small text-muted mb-2">Tap to open the native voice recorder.</p>
-                <!-- This uses the Android/iOS native recorder, bypassing browser JS mic permissions entirely -->
-                <input type="file" id="micInput" accept="audio/*" capture="microphone" class="d-none" onchange="testMicNative(this)">
+                <p class="small text-muted mb-2">Tap to open the native voice recorder for compliance proof.</p>
+                <input type="file" id="micInput" accept="audio/*" capture="microphone" class="d-none" onchange="handleAudio(this)">
                 <label for="micInput" class="btn btn-outline-warning w-100 mb-2 action-btn-label text-dark">
                     <i class="bi bi-mic"></i> Record Audio (Native)
                 </label>
                 <div id="audioStatus" class="small text-muted">Waiting for recording...</div>
                 <audio id="audioPlayback" controls class="w-100 mt-2" style="display:none;"></audio>
-            </div “>
+            </div>
+        </div>
+
+        <!-- Submit Card -->
+        <div class="card card-api border-success border-2">
+            <div class="card-body text-center">
+                <button class="btn btn-success w-100 submit-btn" id="submitBtn" onclick="submitCheckIn()">
+                    🚀 Submit Check-In to HQ
+                </button>
+            </div>
         </div>
 
         <!-- Console Log -->
         <div class="console-log" id="consoleLog">
-            <div class="log-entry success">[System] DEBUG MODE ACTIVE.</div>
+            <div class="log-entry success">[System] Enterprise build loaded. Ready.</div>
         </div>
     </div>
 
     <script>
+        // ==========================================
+        // 1. CONFIGURATION & STATE
+        // ==========================================
+        const config = window.APP_CONFIG;
+        const supabase = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        
+        document.getElementById('agentDisplay').textContent = `#${config.AGENT_ID}`;
+
+        let currentLat = null;
+        let currentLng = null;
+        let map = null, marker = null;
+        let photoFile = null;
+        let audioFile = null;
+        let isSubmitting = false; // Re-entry lock
+
+        // Memory leak prevention
+        let photoPreviewUrl = null;
+        let audioPreviewUrl = null;
+
+        window.addEventListener('beforeunload', () => {
+            if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+            if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+        });
+
+        // ==========================================
+        // 2. LOGGING UTILITY
+        // ==========================================
         function log(msg, type = 'info') {
             const consoleEl = document.getElementById('consoleLog');
             const time = new Date().toLocaleTimeString();
@@ -85,62 +131,191 @@
             console.log(`[${type.toUpperCase()}] ${msg}`);
         }
 
-        // 1. GPS TEST
-        function testGPS() {
-            log("Requesting GPS coordinates...");
+        // ==========================================
+        // 3. FILE VALIDATION HELPER
+        // ==========================================
+        function validateFile(file, allowedTypes, maxSizeMB) {
+            if (!file) return { valid: false, error: "No file provided." };
+            if (!allowedTypes.includes(file.type)) {
+                return { valid: false, error: `Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}` };
+            }
+            if (file.size > maxSizeMB * 1024 * 1024) {
+                return { valid: false, error: `File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Max: ${maxSizeMB}MB.` };
+            }
+            return { valid: true };
+        }
+
+        // ==========================================
+        // 4. GPS LOGIC (With Guard & Zero-Value Fix)
+        // ==========================================
+        function captureGPS() {
+            if (!navigator.geolocation) {
+                log("CRITICAL: Geolocation is not supported by this browser.", "error");
+                alert("Your browser does not support GPS tracking.");
+                return;
+            }
+
+            log("Requesting high-accuracy GPS...");
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    document.getElementById('gpsStatus').innerHTML = `<span class="text-success fw-bold">✅ GPS Acquired: ${lat.toFixed(4)}, ${lng.toFixed(4)}</span>`;
+                    currentLat = position.coords.latitude;
+                    currentLng = position.coords.longitude;
+                    document.getElementById('gpsStatus').innerHTML = `<span class="text-success fw-bold">✅ GPS Acquired: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}</span>`;
                     log(`SUCCESS: Location captured`, "success");
                     
                     const mapEl = document.getElementById('map');
                     mapEl.style.display = 'block';
-                    if (!window.debugMap) {
-                        window.debugMap = L.map('map').setView([lat, lng], 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(window.debugMap);
+                    
+                    if (!map) {
+                        // CRITICAL FIX: Added proper Leaflet attribution
+                        map = L.map('map').setView([currentLat, currentLng], 16);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }).addTo(map);
                     } else {
-                        window.debugMap.setView([lat, lng], 15);
+                        map.setView([currentLat, currentLng], 16);
                     }
-                    if (window.debugMarker) window.debugMap.removeLayer(window.debugMarker);
-                    window.debugMarker = L.marker([lat, lng]).addTo(window.debugMap).bindPopup("You are here").openPopup();
+                    if (marker) map.removeLayer(marker);
+                    marker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("Agent Location").openPopup();
                 },
                 (error) => {
-                    log(`GPS ERROR: ${error.message}`, "error");
+                    log(`GPS ERROR: ${error.message} (Code: ${error.code})`, "error");
+                    alert(`GPS Error: ${error.message}`);
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: true, timeout: 15000 }
             );
         }
 
-        // 2. CAMERA TEST
-        function testCamera(input) {
+        // ==========================================
+        // 5. CAMERA LOGIC (With Validation & URL Revocation)
+        // ==========================================
+        function handlePhoto(input) {
             if (input.files && input.files[0]) {
-                const file = input.files[0];
-                log(`SUCCESS: Photo selected - ${file.name}`, "success");
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('photoPreview').innerHTML = `<img src="${e.target.result}" class="media-preview border">`;
-                    log("SUCCESS: Photo rendered on screen", "success");
+                const validation = validateFile(input.files[0], config.ALLOWED_IMAGE_TYPES, config.MAX_FILE_SIZE_MB);
+                if (!validation.valid) {
+                    log(`Photo rejected: ${validation.error}`, "error");
+                    alert(validation.error);
+                    input.value = ''; // Reset input
+                    return;
                 }
-                reader.readAsDataURL(file);
+
+                photoFile = input.files[0];
+                log(`SUCCESS: Photo validated - ${photoFile.name} (${(photoFile.size/1024).toFixed(1)} KB)`, "success");
+                
+                if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+                photoPreviewUrl = URL.createObjectURL(photoFile);
+                
+                document.getElementById('photoPreview').innerHTML = `<img src="${photoPreviewUrl}" class="media-preview border">`;
             }
         }
 
-        // 3. NATIVE MICROPHONE TEST (Bypasses getUserMedia bugs)
-        function testMicNative(input) {
+        // ==========================================
+        // 6. MICROPHONE LOGIC (With Validation & URL Revocation)
+        // ==========================================
+        function handleAudio(input) {
             if (input.files && input.files[0]) {
-                const file = input.files[0];
-                log(`SUCCESS: Audio recorded - ${file.name} (${(file.size/1024).toFixed(1)} KB)`, "success");
+                const validation = validateFile(input.files[0], config.ALLOWED_AUDIO_TYPES, config.MAX_FILE_SIZE_MB);
+                if (!validation.valid) {
+                    log(`Audio rejected: ${validation.error}`, "error");
+                    alert(validation.error);
+                    input.value = '';
+                    return;
+                }
+
+                audioFile = input.files[0];
+                log(`SUCCESS: Audio validated - ${audioFile.name} (${(audioFile.size/1024).toFixed(1)} KB)`, "success");
                 
-                const audioUrl = URL.createObjectURL(file);
+                if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+                audioPreviewUrl = URL.createObjectURL(audioFile);
+                
                 const playback = document.getElementById('audioPlayback');
-                playback.src = audioUrl;
+                playback.src = audioPreviewUrl;
                 playback.style.display = 'block';
+                document.getElementById('audioStatus').innerHTML = `<span class="text-success fw-bold">✅ Recording saved.</span>`;
+            }
+        }
+
+        // ==========================================
+        // 7. SUBMIT TO SUPABASE (Hardened with Timeout & Lock)
+        // ==========================================
+        async function submitCheckIn() {
+            // CRITICAL FIX: Re-entry lock
+            if (isSubmitting) {
+                log("Submission already in progress. Please wait.", "warn");
+                return;
+            }
+
+            // CRITICAL FIX: Null check instead of falsy check (handles 0,0 coordinates)
+            if (currentLat == null || currentLng == null) {
+                alert("⚠️ Please capture your GPS location first.");
+                log("Submission blocked: Missing GPS", "error");
+                return;
+            }
+            if (!photoFile) {
+                alert("⚠️ Please capture a site photo.");
+                log("Submission blocked: Missing Photo", "error");
+                return;
+            }
+
+            isSubmitting = true;
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading to HQ...';
+            log("Starting secure upload process...", "info");
+
+            try {
+                const timestamp = new Date().toISOString();
+                const photoPath = `agents/${config.AGENT_ID}/photos/${Date.now()}.jpg`;
+                const audioPath = audioFile ? `agents/${config.AGENT_ID}/audio/${Date.now()}.webm` : null;
+
+                // Helper for timeout wrapper
+                const withTimeout = (promise, ms) => {
+                    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout')), ms));
+                    return Promise.race([promise, timeout]);
+                };
+
+                // Step 1: Upload Photo
+                log("Uploading photo to storage...");
+                const photoUploadPromise = supabase.storage.from('proofs').upload(photoPath, photoFile, { upsert: false });
+                const { error: photoError } = await withTimeout(photoUploadPromise, 15000);
+                if (photoError) throw new Error(`Photo upload failed: ${photoError.message}`);
+                log("✅ Photo uploaded successfully", "success");
+
+                // Step 2: Upload Audio (if exists)
+                if (audioFile) {
+                    log("Uploading audio to storage...");
+                    const audioUploadPromise = supabase.storage.from('proofs').upload(audioPath, audioFile, { upsert: false });
+                    const { error: audioError } = await withTimeout(audioUploadPromise, 15000);
+                    if (audioError) throw new Error(`Audio upload failed: ${audioError.message}`);
+                    log("✅ Audio uploaded successfully", "success");
+                }
+
+                // Step 3: Save Record to Database
+                log("Saving check-in record to database...");
+                const dbPromise = supabase.from('checkins').insert({
+                    agent_id: config.AGENT_ID,
+                    timestamp: timestamp,
+                    latitude: currentLat,
+                    longitude: currentLng,
+                    photo_url: photoPath,
+                    audio_url: audioPath
+                });
+                const { error: dbError } = await withTimeout(dbPromise, 10000);
+                if (dbError) throw new Error(`Database save failed: ${dbError.message}`);
                 
-                document.getElementById('audioStatus').innerHTML = `<span class="text-success fw-bold">✅ Recording saved and ready to play.</span>`;
-            } else {
-                log("WARNING: No audio file selected", "error");
+                log("✅ Check-in successfully saved to HQ!", "success");
+                alert("✅ SUCCESS! Check-in submitted to HQ.");
+                
+                // Optional: Reset form for next check-in
+                // location.reload(); 
+
+            } catch (error) {
+                log(`❌ CRITICAL ERROR: ${error.message}`, "error");
+                alert(`Upload Failed: ${error.message}\n\nPlease check your network connection and try again.`);
+            } finally {
+                isSubmitting = false;
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Submit Check-In to HQ';
             }
         }
     </script>
