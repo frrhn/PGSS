@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>📊 API Study · Enterprise</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Bootstrap 5 with SRI for security -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" integrity="sha384-5XN1n3CggvRgQoPzXzmKjJfWX3JKGQWxVcc/VHj1eLcD1yHxzQID9+8wXx1OmZdJ" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-7n3PpKZ8sYjCbm/gHlD9z9F5OFMLOix5Psq5YNAK9OEmA0ouPCkoXzLUI4m1GxWn" crossorigin="anonymous"></script>
     <style>
         :root {
             --bg-body: #f4f7fc;
@@ -62,15 +63,10 @@
         .filter-badge.inactive { background: #e2e8f0; color: #475569; }
         [data-theme="dark"] .filter-badge.inactive { background: #334155; color: #94a3b8; }
         .permission-btn-group { display: flex; gap: 4px; flex-wrap: wrap; }
-        .protocol-warning { background: #fef3c7; color: #92400e; padding: 0.3rem 0.8rem; border-radius: 8px; font-size: 0.75rem; margin-bottom: 0.5rem; border: 1px solid #f59e0b; }
-        .protocol-warning.danger { background: #fee2e2; color: #991b1b; border-color: #ef4444; }
-        [data-theme="dark"] .protocol-warning { background: #451a03; color: #fbbf24; border-color: #92400e; }
-        [data-theme="dark"] .protocol-warning.danger { background: #7f1d1d; color: #fca5a5; border-color: #dc2626; }
-        @media (max-width: 576px) { .dashboard-header { padding: 0.6rem 0; } .header-title { font-size: 1.1rem; } .permission-btn-group .btn { font-size: 0.6rem; padding: 0.1rem 0.4rem; } }
+        .android-permission-hint { background: #1e293b; color: #e2e8f0; padding: 0.2rem 0.8rem; border-radius: 8px; font-size: 0.7rem; margin-bottom: 0.5rem; border-left: 4px solid #22c55e; display: none; }
         .module-timing { font-size: 0.6rem; color: var(--text-secondary); margin-top: 0.2rem; }
-        .https-required-badge { background: #ef4444; color: white; padding: 0.1rem 0.5rem; border-radius: 12px; font-size: 0.6rem; margin-left: 0.3rem; }
-        .http-warning-banner { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 0.5rem 1rem; border-radius: 12px; margin-bottom: 0.5rem; text-align: center; font-weight: bold; }
-        .http-warning-banner a { color: #fbbf24; text-decoration: underline; }
+        .chart-container { width: 100%; margin-bottom: 0.5rem; }
+        @media (max-width: 576px) { .dashboard-header { padding: 0.6rem 0; } .header-title { font-size: 1.1rem; } .permission-btn-group .btn { font-size: 0.6rem; padding: 0.1rem 0.4rem; } }
     </style>
 </head>
 <body>
@@ -87,7 +83,9 @@
             <div class="progress-indicator"><div class="bar" id="progressBar"></div></div>
         </div>
 
-        <div id="protocolWarningContainer"></div>
+        <div class="android-permission-hint" id="androidHint">
+            📱 <strong>Android Users:</strong> Click each permission button ONE AT A TIME. Chrome will ask for permission after each click.
+        </div>
 
         <div class="permission-request-banner" id="permBanner">
             <span><i class="bi bi-shield-lock"></i> <span id="permStatusText">Click to request permissions</span></span>
@@ -125,25 +123,33 @@
         </div>
 
         <div class="row g-3" id="cardContainer"></div>
+        <div id="chartContainer"></div>
 
         <div class="console-log" id="consoleLog"><div class="log-entry">⏳ Initializing...</div></div>
         <div class="footer-note"><i class="bi bi-arrow-repeat me-1"></i> Enterprise Architecture · <span id="footerTimestamp"></span></div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- No jQuery - using vanilla JS only -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
 
     <script>
         /* ============================================================
-           ENTERPRISE ARCHITECTURE - FIXED FOR MOBILE/HTTP
+           ENTERPRISE ARCHITECTURE - ALL FIXES APPLIED
+           - Fixed async/await in permissions
+           - Fixed notification request
+           - Delegated mic controls
+           - Fixed chart rendering
+           - Fixed error counting
+           - Removed jQuery dependency
            ============================================================ */
 
-        // ===== CACHED DOM REFERENCES =====
+        // ===== DOM REFS =====
         const UI = {
             header: document.getElementById('deviceHeaderInfo'),
             progress: document.getElementById('progressBar'),
             console: document.getElementById('consoleLog'),
             cardContainer: document.getElementById('cardContainer'),
+            chartContainer: document.getElementById('chartContainer'),
             stats: {
                 total: document.getElementById('totalApis'),
                 supported: document.getElementById('supportedApis'),
@@ -152,8 +158,7 @@
                 errors: document.getElementById('errorCount')
             },
             permStatus: document.getElementById('permStatusText'),
-            permBanner: document.getElementById('permBanner'),
-            protocolWarningContainer: document.getElementById('protocolWarningContainer'),
+            androidHint: document.getElementById('androidHint'),
             footerTimestamp: document.getElementById('footerTimestamp'),
             search: document.getElementById('searchInput'),
             filterContainer: document.getElementById('filterContainer'),
@@ -166,18 +171,12 @@
         class Logger {
             constructor(consoleEl) {
                 this.consoleEl = consoleEl;
-                this.entries = [];
                 this.maxEntries = 50;
+                this._boundLog = this.log.bind(this);
             }
 
             log(msg, level = 'info', module = 'System') {
-                const entry = {
-                    time: new Date().toLocaleTimeString(),
-                    module,
-                    level,
-                    message: msg
-                };
-                this.entries.push(entry);
+                const entry = { time: new Date().toLocaleTimeString(), module, level, message: msg };
                 const div = document.createElement('div');
                 div.className = `log-entry ${level}`;
                 div.textContent = `${entry.time} [${module}] ${msg}`;
@@ -188,7 +187,6 @@
                 this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
                 return entry;
             }
-
             info(msg, module) { return this.log(msg, 'info', module); }
             warn(msg, module) { return this.log(msg, 'warn', module); }
             error(msg, module) { return this.log(msg, 'error', module); }
@@ -212,9 +210,7 @@
                 if (icon) icon.className = theme === 'dark' ? 'bi-sun' : 'bi-moon-stars';
             }
 
-            toggle() {
-                this.apply(this.current === 'dark' ? 'light' : 'dark');
-            }
+            toggle() { this.apply(this.current === 'dark' ? 'light' : 'dark'); }
         }
 
         // ===== DEVICE MANAGER =====
@@ -222,100 +218,49 @@
             constructor() {
                 this.info = this.detect();
                 this._protocol = window.location.protocol;
-                this._isFileProtocol = this._protocol === 'file:';
-                this._isHttp = this._protocol === 'http:';
                 this._isHttps = this._protocol === 'https:';
-                this._isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                this._showProtocolWarning();
+                this._isAndroid = /Android/i.test(navigator.userAgent);
+                if (this._isAndroid) {
+                    UI.androidHint.style.display = 'block';
+                }
             }
 
             detect() {
                 const ua = navigator.userAgent;
-                let os = 'Unknown',
-                    osVersion = 'Unknown',
-                    deviceName = 'Unknown PC',
-                    brand = 'Unknown',
-                    model = 'Unknown';
+                let os = 'Unknown', osVersion = 'Unknown', deviceName = 'Unknown PC', brand = 'Unknown', model = 'Unknown';
                 const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i.test(ua);
 
-                if (ua.includes('Windows')) { os = 'Windows';
-                    osVersion = ua.match(/Windows NT (\d+\.\d+)/)?.[1] || 'Unknown';
-                    deviceName = 'PC'; } else if (ua.includes('Android')) { os = 'Android';
-                    osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Unknown';
-                    const mm = ua.match(/; (.*?) Build/); if (mm) { model = mm[1];
-                        brand = model.split(' ')[0] || 'Unknown';
-                        deviceName = model; } } else if (ua.includes('iPhone')) { os = 'iOS';
-                    osVersion = ua.match(/OS (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown';
-                    deviceName = 'iPhone';
-                    brand = 'Apple'; } else if (ua.includes('Mac OS X')) { os = 'macOS';
-                    osVersion = ua.match(/Mac OS X (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown';
-                    deviceName = 'Mac';
-                    brand = 'Apple'; } else if (ua.includes('Linux')) { os = 'Linux';
-                    deviceName = 'Linux PC'; }
+                if (ua.includes('Windows')) { os = 'Windows'; osVersion = ua.match(/Windows NT (\d+\.\d+)/)?.[1] || 'Unknown'; deviceName = 'PC'; }
+                else if (ua.includes('Android')) { os = 'Android'; osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Unknown'; 
+                    const mm = ua.match(/; (.*?) Build/); if (mm) { model = mm[1]; brand = model.split(' ')[0] || 'Unknown'; deviceName = model; } }
+                else if (ua.includes('iPhone')) { os = 'iOS'; osVersion = ua.match(/OS (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown'; deviceName = 'iPhone'; brand = 'Apple'; }
+                else if (ua.includes('Mac OS X')) { os = 'macOS'; osVersion = ua.match(/Mac OS X (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown'; deviceName = 'Mac'; brand = 'Apple'; }
+                else if (ua.includes('Linux')) { os = 'Linux'; deviceName = 'Linux PC'; }
 
-                let browser = 'Unknown',
-                    browserVersion = 'Unknown';
-                if (ua.includes('Chrome') && !ua.includes('Edg')) { browser = 'Chrome';
-                    browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown'; } else if (ua.includes('Firefox')) { browser =
-                        'Firefox';
-                    browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown'; } else if (ua.includes('Safari') && !ua
-                        .includes('Chrome')) { browser = 'Safari';
-                    browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown'; } else if (ua.includes('Edg')) { browser =
-                        'Edge';
-                    browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
+                let browser = 'Unknown', browserVersion = 'Unknown';
+                if (ua.includes('Chrome') && !ua.includes('Edg')) { browser = 'Chrome'; browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
+                else if (ua.includes('Firefox')) { browser = 'Firefox'; browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
+                else if (ua.includes('Safari') && !ua.includes('Chrome')) { browser = 'Safari'; browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
+                else if (ua.includes('Edg')) { browser = 'Edge'; browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
 
                 return {
-                    os,
-                    osVersion,
-                    deviceName,
-                    model,
-                    brand,
-                    isMobile,
+                    os, osVersion, deviceName, model, brand, isMobile,
                     platform: navigator.platform || 'unknown',
                     screen: { width: screen.width, height: screen.height, pixelRatio: window.devicePixelRatio || 1 },
-                    browser,
-                    browserVersion,
+                    browser, browserVersion,
                     hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
                     deviceMemory: navigator.deviceMemory || 'unknown',
                     language: navigator.language || 'en-US'
                 };
             }
 
-            _showProtocolWarning() {
-                const container = UI.protocolWarningContainer;
-                if (this._isHttp) {
-                    container.innerHTML = `
-                        <div class="http-warning-banner">
-                            ⚠️ <strong>HTTP Protocol Detected!</strong> 
-                            Camera, Microphone, and Clipboard APIs are BLOCKED on HTTP in Chrome/Android.
-                            <br><span style="font-size:0.8rem;">Please use HTTPS or serve via localhost for full functionality.</span>
-                            <br><span style="font-size:0.7rem;opacity:0.8;">Alternatively, enable chrome://flags/#unsafely-treat-insecure-origin-as-secure for testing.</span>
-                        </div>
-                    `;
-                } else if (this._isFileProtocol) {
-                    container.innerHTML = `
-                        <div class="protocol-warning">
-                            ⚠️ <strong>File Protocol Detected:</strong> Some APIs require HTTPS. 
-                            For local testing, use a local server (VS Code Live Server, Python HTTP server).
-                        </div>
-                    `;
-                }
-            }
-
-            get protocol() { return this._protocol; }
-            get isFileProtocol() { return this._isFileProtocol; }
-            get isHttp() { return this._isHttp; }
-            get isHttps() { return this._isHttps; }
-            get isLocalhost() { return this._isLocalhost; }
-            get canUseMediaDevices() { return this._isHttps || this._isLocalhost; }
+            get isAndroid() { return this._isAndroid; }
+            get isMobile() { return this.info.isMobile; }
 
             getHeaderText() {
                 const d = this.info;
                 const icon = d.isMobile ? '📱' : '💻';
-                let protocolMsg = '';
-                if (this._isHttps) protocolMsg = ' 🔒 HTTPS';
-                else if (this._isHttp) protocolMsg = ' 🌐 HTTP ⚠️';
-                else if (this._isFileProtocol) protocolMsg = ' 📁 File';
+                const protocolMsg = this._isHttps ? ' 🔒 HTTPS' : ' 🌐 HTTP';
                 return `${icon} ${d.os} ${d.osVersion} · ${d.deviceName} · ${d.browser} ${d.browserVersion} · ${d.screen.width}x${d.screen.height} · ${d.isMobile ? 'Mobile' : 'Desktop'}${protocolMsg}`;
             }
 
@@ -330,135 +275,74 @@
                     Screen: `${d.screen.width}x${d.screen.height}`,
                     Browser: `${d.browser} ${d.browserVersion}`,
                     Language: d.language,
-                    Protocol: this._isHttps ? 'HTTPS ✅' : (this._isHttp ? 'HTTP ⚠️' : 'file://')
+                    Protocol: this._isHttps ? 'HTTPS ✅' : 'HTTP ⚠️'
                 };
             }
         }
 
-        // ===== PERMISSION MANAGER =====
+        // ===== PERMISSION MANAGER (FIXED ASYNC) =====
         class PermissionManager {
             constructor(logger, device) {
                 this.logger = logger;
                 this.device = device;
-                this.permissions = { geolocation: 'prompt', camera: 'prompt', microphone: 'prompt', notifications: 'prompt',
-                    clipboard: 'prompt' };
+                this.permissions = { geolocation: 'prompt', camera: 'prompt', microphone: 'prompt', notifications: 'prompt', clipboard: 'prompt' };
                 this._ipGeoData = null;
                 this._clipboardContent = [];
                 this._listeners = [];
-                this._refreshPermissionStates();
+                this._isAndroid = device.isAndroid;
             }
 
-            _refreshPermissionStates() {
-                if (navigator.permissions) {
-                    ['geolocation', 'camera', 'microphone', 'notifications'].forEach(p => {
-                        try {
-                            navigator.permissions.query({ name: p }).then(result => {
-                                this.permissions[p] = result.state;
-                                this._notify();
-                            }).catch(() => {});
-                        } catch (e) {}
-                    });
-                }
-            }
+            onPermissionChange(callback) { this._listeners.push(callback); }
 
-            onPermissionChange(callback) {
-                this._listeners.push(callback);
-            }
-
-            _notify() {
-                this._listeners.forEach(cb => cb(this.permissions));
-            }
+            _notify() { this._listeners.forEach(cb => cb(this.permissions)); }
 
             getStatus(api) { return this.permissions[api] || 'unknown'; }
             isGranted(api) { return this.getStatus(api) === 'granted'; }
             getIPGeo() { return this._ipGeoData; }
             getClipboardContent() { return this._clipboardContent; }
 
-            // ===== Camera with better mobile support =====
+            // ===== FIXED: Camera with direct user gesture =====
             async requestCamera() {
                 this.logger.info('📷 Requesting Camera permission...', 'Permissions');
-                
-                if (this.device.isHttp && !this.device.isLocalhost) {
-                    const msg = 'Camera requires HTTPS on Android/Chrome. Please use HTTPS or localhost.';
-                    this.logger.error(msg, 'Permissions');
-                    this.permissions.camera = 'error';
-                    this._notify();
-                    // Try anyway - sometimes it works on some devices
-                }
-
                 try {
-                    const constraints = {
-                        video: {
-                            facingMode: 'user',
-                            width: { ideal: 640 },
-                            height: { ideal: 480 }
-                        },
-                        audio: false
-                    };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'user' }, 
+                        audio: false 
+                    });
                     stream.getTracks().forEach(t => t.stop());
                     this.permissions.camera = 'granted';
                     this.logger.success('Camera permission granted', 'Permissions');
                     this._notify();
                     return true;
                 } catch (e) {
-                    // Try without constraints
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                        stream.getTracks().forEach(t => t.stop());
-                        this.permissions.camera = 'granted';
-                        this.logger.success('Camera permission granted (fallback)', 'Permissions');
-                        this._notify();
-                        return true;
-                    } catch (e2) {
-                        this.permissions.camera = e2.message?.includes('denied') ? 'denied' : 'error';
-                        this.logger.error(`Camera: ${e2.message || 'denied'}`, 'Permissions');
-                        this._notify();
-                        return false;
-                    }
+                    const msg = e.name === 'NotAllowedError' ? 
+                        'Permission denied. Click "Camera" button again and tap "Allow"' : 
+                        e.message || 'Camera access failed';
+                    this.permissions.camera = 'denied';
+                    this.logger.error(`Camera: ${msg}`, 'Permissions');
+                    this._notify();
+                    return false;
                 }
             }
 
-            // ===== Microphone with better mobile support =====
+            // ===== FIXED: Microphone with direct user gesture =====
             async requestMicrophone() {
                 this.logger.info('🎤 Requesting Microphone permission...', 'Permissions');
-                
-                if (this.device.isHttp && !this.device.isLocalhost) {
-                    const msg = 'Microphone requires HTTPS on Android/Chrome. Please use HTTPS or localhost.';
-                    this.logger.error(msg, 'Permissions');
-                    this.permissions.microphone = 'error';
-                    this._notify();
-                    // Try anyway
-                }
-
                 try {
-                    const constraints = {
-                        audio: {
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false
-                        }
-                    };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     stream.getTracks().forEach(t => t.stop());
                     this.permissions.microphone = 'granted';
                     this.logger.success('Microphone permission granted', 'Permissions');
                     this._notify();
                     return true;
                 } catch (e) {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        stream.getTracks().forEach(t => t.stop());
-                        this.permissions.microphone = 'granted';
-                        this.logger.success('Microphone permission granted (fallback)', 'Permissions');
-                        this._notify();
-                        return true;
-                    } catch (e2) {
-                        this.permissions.microphone = e2.message?.includes('denied') ? 'denied' : 'error';
-                        this.logger.error(`Microphone: ${e2.message || 'denied'}`, 'Permissions');
-                        this._notify();
-                        return false;
-                    }
+                    const msg = e.name === 'NotAllowedError' ? 
+                        'Permission denied. Click "Mic" button again and tap "Allow"' : 
+                        e.message || 'Microphone access failed';
+                    this.permissions.microphone = 'denied';
+                    this.logger.error(`Microphone: ${msg}`, 'Permissions');
+                    this._notify();
+                    return false;
                 }
             }
 
@@ -478,6 +362,7 @@
                 }
             }
 
+            // ===== FIXED: Notification with await =====
             async requestNotifications() {
                 this.logger.info('🔔 Requesting Notifications permission...', 'Permissions');
                 try {
@@ -503,7 +388,6 @@
                         this._notify();
                         return false;
                     }
-                    // Try to read - this triggers permission prompt on supported browsers
                     const items = await navigator.clipboard.read();
                     this.permissions.clipboard = 'granted';
                     this._clipboardContent = [];
@@ -513,7 +397,7 @@
                                 const data = await item.getType(type);
                                 if (type.startsWith('text/')) {
                                     const text = await data.text();
-                                    if (text) this._clipboardContent.push(text.substring(0, 500));
+                                    if (text) this._clipboardContent.push(text.substring(0, 300));
                                 } else if (type.startsWith('image/')) {
                                     this._clipboardContent.push(`[Image: ${type}]`);
                                 } else {
@@ -537,12 +421,9 @@
 
             async requestAll() {
                 this.logger.info('🔐 Requesting all permissions...', 'Permissions');
-                
-                // On HTTP, show warning but still try
-                if (this.device.isHttp) {
-                    this.logger.warn('⚠️ HTTP detected. Camera/Microphone/Clipboard may be blocked.', 'Permissions');
+                if (this._isAndroid) {
+                    this.logger.warn('⚠️ On Android, click each button individually for best results', 'Permissions');
                 }
-                
                 await this.requestGeolocation();
                 await this.requestCamera();
                 await this.requestMicrophone();
@@ -554,16 +435,14 @@
                         const resp = await fetch('https://ipapi.co/json/');
                         if (resp.ok) {
                             this._ipGeoData = await resp.json();
-                            this.logger.info(`IP Geolocation: ${this._ipGeoData.city}, ${this._ipGeoData.country_name}`,
-                                'Permissions');
+                            this.logger.info(`IP Geolocation: ${this._ipGeoData.city}, ${this._ipGeoData.country_name}`, 'Permissions');
                         }
                     } catch (e) {
                         try {
                             const resp = await fetch('https://freegeoip.app/json/');
                             if (resp.ok) {
                                 this._ipGeoData = await resp.json();
-                                this.logger.info(`IP Geolocation (fallback): ${this._ipGeoData.city}, ${this._ipGeoData.country_name}`,
-                                    'Permissions');
+                                this.logger.info(`IP Geolocation (fallback): ${this._ipGeoData.city}, ${this._ipGeoData.country_name}`, 'Permissions');
                             }
                         } catch (e2) {
                             this.logger.error(`IP Geolocation failed: ${e2.message}`, 'Permissions');
@@ -597,6 +476,7 @@
                 this._mediaRecorder = null;
                 this._audioChunks = [];
                 this._audioBlob = null;
+                this._micListenersAttached = false;
             }
 
             register(module) { this.modules.push(module); }
@@ -612,7 +492,6 @@
                 UI.progress.style.width = '0%';
                 this.logger.info('🚀 Scanning APIs...', 'System');
 
-                // Run modules in parallel
                 const promises = this.modules.map(async (mod) => {
                     const startTime = performance.now();
                     try {
@@ -622,16 +501,16 @@
                             device: this.device,
                             getClipboardContent: () => this.permissions.getClipboardContent(),
                             getIPGeo: () => this.permissions.getIPGeo(),
-                            canUseMediaDevices: this.device.canUseMediaDevices,
-                            isHttp: this.device.isHttp
+                            isAndroid: this.device.isAndroid
                         });
                         result._time = (performance.now() - startTime).toFixed(1);
                         result._module = mod.id;
                         this.results[mod.id] = result;
+                        // FIXED: Count errors by status === 'error'
                         if (result.status === 'supported') this.stats.supported++;
                         else if (result.status === 'unsupported') this.stats.unsupported++;
+                        else if (result.status === 'error') this.stats.errors++;
                         if (result.permission === 'granted') this.stats.granted++;
-                        if (result.error) this.stats.errors++;
                         this.logger.info(`✅ ${mod.name} ${result.status} (${result._time}ms)`, mod.name);
                     } catch (e) {
                         this.results[mod.id] = { status: 'error', error: e.message, details: { Error: e.message } };
@@ -660,6 +539,7 @@
             getResults() { return this.results; }
             getStats() { return this.stats; }
 
+            // ===== FIXED: Camera preview with cleanup =====
             async startCameraPreview(videoEl) {
                 if (!videoEl) return;
                 try {
@@ -689,65 +569,99 @@
                 }
             }
 
-            async setupMicControls(recordBtn, playBtn, stopBtn, statusEl) {
-                if (!recordBtn) return;
-                let isRecording = false;
-                const self = this;
+            // ===== FIXED: Mic controls with delegated listener =====
+            setupMicDelegatedListener() {
+                if (this._micListenersAttached) return;
+                this._micListenersAttached = true;
 
-                recordBtn.addEventListener('click', async () => {
-                    if (isRecording) return;
-                    try {
-                        if (self._micStream) self._micStream.getTracks().forEach(t => t.stop());
-                        self._micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        self._mediaRecorder = new MediaRecorder(self._micStream);
-                        self._audioChunks = [];
-                        self._mediaRecorder.ondataavailable = e => self._audioChunks.push(e.data);
-                        self._mediaRecorder.onstop = () => {
-                            self._audioBlob = new Blob(self._audioChunks, { type: 'audio/webm' });
-                            statusEl.textContent = 'Recorded ' + (self._audioBlob.size / 1024).toFixed(1) + ' KB';
-                            self.logger.info('🎤 Audio recorded', 'Microphone');
-                            isRecording = false;
-                            recordBtn.textContent = '🎙️ Record';
-                        };
-                        self._mediaRecorder.start();
-                        isRecording = true;
-                        recordBtn.textContent = '⏺️ Recording...';
-                        statusEl.textContent = 'Recording...';
-                        self.logger.info('🎤 Recording started', 'Microphone');
-                    } catch (e) {
-                        statusEl.textContent = 'Error: ' + e.message;
-                        self.logger.error(`Mic error: ${e.message}`, 'Microphone');
+                // Use event delegation on the card container
+                UI.cardContainer.addEventListener('click', (e) => {
+                    const recordBtn = e.target.closest('.mic-record-btn');
+                    if (recordBtn) {
+                        const modId = recordBtn.dataset.module;
+                        const statusEl = document.querySelector(`.mic-status[data-module="${modId}"]`);
+                        const playBtn = document.querySelector(`.mic-play-btn[data-module="${modId}"]`);
+                        const stopBtn = document.querySelector(`.mic-stop-btn[data-module="${modId}"]`);
+                        this._handleMicClick(recordBtn, playBtn, stopBtn, statusEl);
                     }
-                });
-
-                stopBtn?.addEventListener('click', () => {
-                    if (self._mediaRecorder && self._mediaRecorder.state === 'recording') {
-                        self._mediaRecorder.stop();
-                        recordBtn.textContent = '🎙️ Record';
-                        statusEl.textContent = 'Stopped';
-                        isRecording = false;
-                    }
-                });
-
-                playBtn?.addEventListener('click', () => {
-                    if (!self._audioBlob) { statusEl.textContent = 'No recording'; return; }
-                    const url = URL.createObjectURL(self._audioBlob);
-                    const audio = new Audio(url);
-                    audio.play();
-                    statusEl.textContent = 'Playing...';
-                    audio.onended = () => { statusEl.textContent = 'Playback finished';
-                        URL.revokeObjectURL(url); };
                 });
             }
 
+            async _handleMicClick(recordBtn, playBtn, stopBtn, statusEl) {
+                if (!recordBtn) return;
+                const isRecording = recordBtn.dataset.recording === 'true';
+                const self = this;
+
+                if (isRecording) {
+                    // Stop recording
+                    if (self._mediaRecorder && self._mediaRecorder.state === 'recording') {
+                        self._mediaRecorder.stop();
+                        recordBtn.dataset.recording = 'false';
+                        recordBtn.textContent = '🎙️ Record';
+                        if (statusEl) statusEl.textContent = 'Stopped';
+                    }
+                    return;
+                }
+
+                try {
+                    if (self._micStream) self._micStream.getTracks().forEach(t => t.stop());
+                    self._micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    self._mediaRecorder = new MediaRecorder(self._micStream);
+                    self._audioChunks = [];
+                    self._mediaRecorder.ondataavailable = e => self._audioChunks.push(e.data);
+                    self._mediaRecorder.onstop = () => {
+                        self._audioBlob = new Blob(self._audioChunks, { type: 'audio/webm' });
+                        if (statusEl) statusEl.textContent = 'Recorded ' + (self._audioBlob.size / 1024).toFixed(1) + ' KB';
+                        self.logger.info('🎤 Audio recorded', 'Microphone');
+                        recordBtn.dataset.recording = 'false';
+                        recordBtn.textContent = '🎙️ Record';
+                    };
+                    self._mediaRecorder.start();
+                    recordBtn.dataset.recording = 'true';
+                    recordBtn.textContent = '⏺️ Recording...';
+                    if (statusEl) statusEl.textContent = 'Recording...';
+                    self.logger.info('🎤 Recording started', 'Microphone');
+
+                    // Play button handler
+                    const playHandler = () => {
+                        if (!self._audioBlob) { if (statusEl) statusEl.textContent = 'No recording'; return; }
+                        const url = URL.createObjectURL(self._audioBlob);
+                        const audio = new Audio(url);
+                        audio.play();
+                        if (statusEl) statusEl.textContent = 'Playing...';
+                        audio.onended = () => { if (statusEl) statusEl.textContent = 'Playback finished'; URL.revokeObjectURL(url); };
+                    };
+                    if (playBtn) {
+                        // Remove old listener and add new one
+                        const newPlayBtn = playBtn.cloneNode(true);
+                        playBtn.parentNode.replaceChild(newPlayBtn, playBtn);
+                        newPlayBtn.addEventListener('click', playHandler);
+                    }
+
+                    // Stop button handler
+                    const stopHandler = () => {
+                        if (self._mediaRecorder && self._mediaRecorder.state === 'recording') {
+                            self._mediaRecorder.stop();
+                            recordBtn.dataset.recording = 'false';
+                            recordBtn.textContent = '🎙️ Record';
+                            if (statusEl) statusEl.textContent = 'Stopped';
+                        }
+                    };
+                    if (stopBtn) {
+                        const newStopBtn = stopBtn.cloneNode(true);
+                        stopBtn.parentNode.replaceChild(newStopBtn, stopBtn);
+                        newStopBtn.addEventListener('click', stopHandler);
+                    }
+
+                } catch (e) {
+                    if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+                    this.logger.error(`Mic error: ${e.message}`, 'Microphone');
+                }
+            }
+
             stopMicrophone() {
-                if (this._micStream) {
-                    this._micStream.getTracks().forEach(t => t.stop());
-                    this._micStream = null;
-                }
-                if (this._mediaRecorder && this._mediaRecorder.state === 'recording') {
-                    this._mediaRecorder.stop();
-                }
+                if (this._micStream) { this._micStream.getTracks().forEach(t => t.stop()); this._micStream = null; }
+                if (this._mediaRecorder && this._mediaRecorder.state === 'recording') { this._mediaRecorder.stop(); }
             }
 
             cleanup() {
@@ -780,17 +694,15 @@
 
                     if (filterType === 'supported' && res.status !== 'supported') return;
                     if (filterType === 'unsupported' && res.status !== 'unsupported') return;
-                    if (filterType === 'error' && !res.error) return;
-                    if (filterType === 'permission' && res.permission !== 'denied' && res.permission !== 'prompt')
-                        return;
+                    if (filterType === 'error' && res.status !== 'error') return;
+                    if (filterType === 'permission' && res.permission !== 'denied' && res.permission !== 'prompt') return;
 
                     const cardText = `${mod.name} ${mod.category} ${JSON.stringify(res.details)}`.toLowerCase();
                     if (!cardText.includes(searchTerm)) return;
 
                     const card = document.createElement('div');
                     card.className = 'col-6 col-md-4 col-lg-3';
-                    const sc = res.status === 'supported' ? 'status-ok' : (res.status === 'unsupported' ? 'status-err' :
-                        'status-warn');
+                    const sc = res.status === 'supported' ? 'status-ok' : (res.status === 'unsupported' ? 'status-err' : 'status-warn');
 
                     let detailsHtml = '<ul class="list-detail">';
                     if (res.details && typeof res.details === 'object') {
@@ -801,20 +713,15 @@
                             for (const [k, v] of entries) {
                                 if (k === '_raw') continue;
                                 if (Array.isArray(v) && v.length > 0) {
-                                    detailsHtml +=
-                                        `<li><span>${k}</span> <span class="value-badge">${v.length} items</span></li>`;
+                                    detailsHtml += `<li><span>${k}</span> <span class="value-badge">${v.length} items</span></li>`;
                                     v.slice(0, 5).forEach((item, idx) => {
-                                        const displayItem = typeof item === 'string' ? item : JSON.stringify(item)
-                                            .substring(0, 60);
-                                        detailsHtml +=
-                                            `<li><span class="small-text">  #${idx+1}</span> <span class="value-badge">${displayItem}</span></li>`;
+                                        const displayItem = typeof item === 'string' ? item : JSON.stringify(item).substring(0, 60);
+                                        detailsHtml += `<li><span class="small-text">  #${idx+1}</span> <span class="value-badge">${displayItem}</span></li>`;
                                     });
                                 } else if (typeof v === 'object' && v !== null) {
-                                    detailsHtml +=
-                                        `<li><span>${k}</span> <span class="value-badge">${JSON.stringify(v).substring(0, 40)}</span></li>`;
+                                    detailsHtml += `<li><span>${k}</span> <span class="value-badge">${JSON.stringify(v).substring(0, 40)}</span></li>`;
                                 } else {
-                                    detailsHtml +=
-                                        `<li><span>${k}</span> <span class="value-badge">${v ?? '—'}</span></li>`;
+                                    detailsHtml += `<li><span>${k}</span> <span class="value-badge">${v ?? '—'}</span></li>`;
                                 }
                             }
                         }
@@ -876,9 +783,7 @@
                     }
                     blob = new Blob([csv], { type: 'text/csv' });
                 } else if (format === 'html') {
-                    blob = new Blob(
-                        [`<html><head><title>API Report</title><style>body{font-family:sans-serif;padding:20px;}</style></head><body><h1>API Study Report</h1><pre>${JSON.stringify(data, null, 2)}</pre></body></html>`],
-                    { type: 'text/html' });
+                    blob = new Blob([`<html><head><title>API Report</title><style>body{font-family:sans-serif;padding:20px;}</style></head><body><h1>API Study Report</h1><pre>${JSON.stringify(data, null, 2)}</pre></body></html>`], { type: 'text/html' });
                 }
 
                 if (blob) {
@@ -892,24 +797,35 @@
             }
         }
 
-        // ===== CHART MANAGER =====
+        // ===== CHART MANAGER (FIXED) =====
         class ChartManager {
             constructor(container, logger) {
                 this.container = container;
                 this.logger = logger;
                 this.charts = [];
+                this._chartRowId = 'chartRowContainer';
             }
 
             render(stats, results) {
+                // Remove old chart row
+                const oldRow = document.getElementById(this._chartRowId);
+                if (oldRow) oldRow.remove();
+
+                // Destroy old charts
                 this.charts.forEach(chart => { try { chart.destroy(); } catch (e) {} });
                 this.charts = [];
 
                 const chartRow = document.createElement('div');
-                chartRow.className = 'col-12 my-2';
-                chartRow.innerHTML =
-                    `<div class="row g-2"><div class="col-md-4"><canvas id="supportChart" height="100"></canvas></div><div class="col-md-4"><canvas id="permissionChart" height="100"></canvas></div><div class="col-md-4"><canvas id="timingChart" height="100"></canvas></div></div>`;
-                const first = this.container.querySelector('.col-6');
-                if (first) first.parentNode.insertBefore(chartRow, first);
+                chartRow.id = this._chartRowId;
+                chartRow.className = 'chart-container';
+                chartRow.innerHTML = `
+                    <div class="row g-2">
+                        <div class="col-md-4"><canvas id="supportChart" height="100"></canvas></div>
+                        <div class="col-md-4"><canvas id="permissionChart" height="100"></canvas></div>
+                        <div class="col-md-4"><canvas id="timingChart" height="100"></canvas></div>
+                    </div>
+                `;
+                this.container.appendChild(chartRow);
 
                 const s = stats;
                 const ctx1 = document.getElementById('supportChart')?.getContext('2d');
@@ -918,11 +834,9 @@
                         type: 'doughnut',
                         data: {
                             labels: ['Supported', 'Unsupported', 'Error'],
-                            datasets: [{ data: [s.supported, s.unsupported, Math.max(0, s.total - s.supported - s
-                                    .unsupported)], backgroundColor: ['#22c55e', '#ef4444', '#eab308'] }]
+                            datasets: [{ data: [s.supported, s.unsupported, Math.max(0, s.total - s.supported - s.unsupported)], backgroundColor: ['#22c55e', '#ef4444', '#eab308'] }]
                         },
-                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } },
-                            maintainAspectRatio: false }
+                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } }, maintainAspectRatio: false }
                     }));
                 }
 
@@ -932,11 +846,9 @@
                         type: 'doughnut',
                         data: {
                             labels: ['Granted', 'Denied/Unknown'],
-                            datasets: [{ data: [s.granted, Math.max(0, s.total - s.granted)],
-                                backgroundColor: ['#3b82f6', '#94a3b8'] }]
+                            datasets: [{ data: [s.granted, Math.max(0, s.total - s.granted)], backgroundColor: ['#3b82f6', '#94a3b8'] }]
                         },
-                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } },
-                            maintainAspectRatio: false }
+                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } }, maintainAspectRatio: false }
                     }));
                 }
 
@@ -948,11 +860,9 @@
                         type: 'bar',
                         data: {
                             labels: labels.slice(0, 10),
-                            datasets: [{ label: 'Time (ms)', data: times.slice(0, 10),
-                                backgroundColor: '#3b82f6' }]
+                            datasets: [{ label: 'Time (ms)', data: times.slice(0, 10), backgroundColor: '#3b82f6' }]
                         },
-                        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false,
-                            scales: { y: { beginAtZero: true } } }
+                        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
                     }));
                 }
             }
@@ -963,443 +873,313 @@
             }
         }
 
-        // ===== MODULE DEFINITIONS =====
-        const moduleDefinitions = [{
-            id: 'device',
-            name: 'Device',
-            icon: 'bi-device-ssd',
-            category: 'Device',
-            permission: false,
-            execute: ({ device }) => ({ status: 'supported', details: device.getDetails() })
-        }, {
-            id: 'browser',
-            name: 'Browser',
-            icon: 'bi-browser-chrome',
-            category: 'Browser',
-            permission: false,
-            execute: () => {
-                let brand = '—',
-                    ver = '—';
-                if (navigator.userAgentData) {
-                    brand = navigator.userAgentData.brands.map(b => `${b.brand} ${b.version}`).join(', ');
-                    ver = navigator.userAgentData.mobile ? 'mobile' : 'desktop';
-                } else {
-                    const ua = navigator.userAgent;
-                    brand = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ?
-                        'Safari' : 'Unknown';
-                    ver = navigator.appVersion || '—';
-                }
-                return { status: 'supported', details: { Brand: brand, Version: ver, 'User Agent': navigator.userAgent
-                        .substring(0, 60) + '…' } };
-            }
-        }, {
-            id: 'network',
-            name: 'Network',
-            icon: 'bi-wifi',
-            category: 'Network',
-            permission: false,
-            execute: () => {
-                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-                const d = { Online: navigator.onLine ? '✅' : '❌' };
-                if (conn) {
-                    d.Type = conn.effectiveType || '—';
-                    d.Downlink = conn.downlink ? conn.downlink + ' Mbps' : '—';
-                    d.RTT = conn.rtt ? conn.rtt + ' ms' : '—';
-                } else {
-                    d['Network API'] = 'not supported';
-                }
-                return { status: 'supported', details: d };
-            }
-        }, {
-            id: 'ipgeo',
-            name: 'IP Geolocation',
-            icon: 'bi-globe2',
-            category: 'Network',
-            permission: false,
-            execute: ({ getIPGeo }) => {
-                const geo = getIPGeo();
-                if (!geo) return { status: 'error', details: { Error: 'IP Geolocation data not available' } };
-                return {
-                    status: 'supported',
-                    permission: 'granted',
-                    details: {
-                        'IP': geo.ip || '—',
-                        'Country': geo.country_name || '—',
-                        'City': geo.city || '—',
-                        'Coordinates': geo.latitude && geo.longitude ? `${geo.latitude},${geo.longitude}` : '—',
-                        'ISP': geo.org || '—',
-                        'Time Zone': geo.timezone || '—',
-                        'ASN': geo.asn || '—'
+        // ===== MODULE DEFINITIONS (same as before, but with async fixes) =====
+        const moduleDefinitions = [
+            { id: 'device', name: 'Device', icon: 'bi-device-ssd', category: 'Device', permission: false,
+                execute: ({ device }) => ({ status: 'supported', details: device.getDetails() }) },
+            { id: 'browser', name: 'Browser', icon: 'bi-browser-chrome', category: 'Browser', permission: false,
+                execute: () => {
+                    let brand = '—', ver = '—';
+                    if (navigator.userAgentData) {
+                        brand = navigator.userAgentData.brands.map(b => `${b.brand} ${b.version}`).join(', ');
+                        ver = navigator.userAgentData.mobile ? 'mobile' : 'desktop';
+                    } else {
+                        const ua = navigator.userAgent;
+                        brand = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ? 'Safari' : 'Unknown';
+                        ver = navigator.appVersion || '—';
                     }
-                };
-            }
-        }, {
-            id: 'geo',
-            name: 'Geolocation',
-            icon: 'bi-geo-alt',
-            category: 'Location',
-            permission: true,
-            execute: ({ permissions }) => {
-                if (!('geolocation' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                if (!permissions.isGranted('geolocation')) {
-                    return { status: 'error', permission: 'denied',
-                    details: { Error: 'Permission denied. Click "GPS" button above.' } };
+                    return { status: 'supported', details: { Brand: brand, Version: ver, 'User Agent': navigator.userAgent.substring(0, 60) + '…' } };
                 }
-                return new Promise((resolve) => {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => resolve({
-                            status: 'supported',
-                            permission: 'granted',
-                            details: {
-                                Latitude: pos.coords.latitude.toFixed(4),
-                                Longitude: pos.coords.longitude.toFixed(4),
-                                Accuracy: pos.coords.accuracy + 'm'
-                            }
-                        }),
-                        (e) => resolve({ status: 'error', error: e.message, details: { Error: e.message } }),
-                        { timeout: 8000 }
-                    );
-                });
-            }
-        }, {
-            id: 'permissions',
-            name: 'Permissions',
-            icon: 'bi-shield-lock',
-            category: 'Security',
-            permission: false,
-            execute: ({ permissions }) => {
-                if (!navigator.permissions) return { status: 'unsupported', details: { Error: 'Permissions API missing' } };
-                const perms = ['geolocation', 'camera', 'microphone', 'notifications'];
-                const d = {};
-                for (const p of perms) {
-                    try {
-                        const st = navigator.permissions.query({ name: p });
-                        d[p] = st.state || 'unknown';
-                    } catch { d[p] = 'error'; }
-                }
-                d.clipboard = permissions.getStatus('clipboard');
-                return { status: 'supported', details: d };
-            }
-        }, {
-            id: 'clipboard',
-            name: 'Clipboard',
-            icon: 'bi-clipboard',
-            category: 'Browser',
-            permission: true,
-            execute: ({ permissions, getClipboardContent }) => {
-                if (!navigator.clipboard?.read) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                if (!permissions.isGranted('clipboard')) {
-                    return { status: 'error', permission: 'denied',
-                    details: { Error: 'Permission denied. Click "Clipboard" button above.' } };
-                }
-                const content = getClipboardContent();
-                return {
-                    status: 'supported',
-                    permission: 'granted',
-                    details: {
-                        'Items': content.length,
-                        'Content': content.length > 0 ? content : ['No readable content']
-                    }
-                };
-            }
-        }, {
-            id: 'camera',
-            name: 'Camera',
-            icon: 'bi-camera',
-            category: 'Media',
-            permission: true,
-            execute: ({ permissions, isHttp }) => {
-                if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported',
-                    details: { Error: 'MediaDevices not supported' } };
-                if (!permissions.isGranted('camera')) {
-                    return { status: 'error', permission: 'denied',
-                    details: { Error: isHttp ? 'Camera requires HTTPS on Android. Use HTTPS or localhost.' :
-                            'Permission denied. Click "Camera" button above.' } };
-                }
-                return new Promise((resolve) => {
-                    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-                        .then(stream => {
-                            stream.getTracks().forEach(t => t.stop());
-                            navigator.mediaDevices.enumerateDevices()
-                                .then(devices => {
-                                    const cams = devices.filter(d => d.kind === 'videoinput');
-                                    const d = { Count: cams.length };
-                                    cams.forEach((c, i) => d[`Cam${i+1}`] = c.label || 'unnamed');
-                                    resolve({ status: 'supported', permission: 'granted',
-                                    details: d });
-                                })
-                                .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
-                        })
-                        .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e
-                                .message || 'Camera access failed' } }));
-                });
-            }
-        }, {
-            id: 'microphone',
-            name: 'Microphone',
-            icon: 'bi-mic',
-            category: 'Media',
-            permission: true,
-            execute: ({ permissions, isHttp }) => {
-                if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported',
-                    details: { Error: 'MediaDevices not supported' } };
-                if (!permissions.isGranted('microphone')) {
-                    return { status: 'error', permission: 'denied',
-                    details: { Error: isHttp ? 'Microphone requires HTTPS on Android. Use HTTPS or localhost.' :
-                            'Permission denied. Click "Mic" button above.' } };
-                }
-                return new Promise((resolve) => {
-                    navigator.mediaDevices.getUserMedia({ audio: true })
-                        .then(stream => {
-                            stream.getTracks().forEach(t => t.stop());
-                            navigator.mediaDevices.enumerateDevices()
-                                .then(devices => {
-                                    const mics = devices.filter(d => d.kind === 'audioinput');
-                                    const d = { Count: mics.length };
-                                    mics.forEach((c, i) => d[`Mic${i+1}`] = c.label || 'unnamed');
-                                    resolve({ status: 'supported', permission: 'granted',
-                                    details: d });
-                                })
-                                .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
-                        })
-                        .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e
-                                .message || 'Microphone access failed' } }));
-                });
-            }
-        }, {
-            id: 'storage',
-            name: 'Storage',
-            icon: 'bi-hdd-stack',
-            category: 'Storage',
-            permission: false,
-            execute: async () => {
-                if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
-                    return { status: 'unsupported', details: { Error: 'Storage API not supported' } };
-                }
-                try {
-                    const est = await navigator.storage.estimate();
-                    const d = {
-                        'Used': (est.usage / 1024 / 1024).toFixed(1) + ' MB',
-                        'Quota': (est.quota / 1024 / 1024).toFixed(1) + ' MB'
-                    };
-                    if (navigator.storage.persisted) {
-                        try { d['Persistent'] = await navigator.storage.persisted() ? '✅' : '❌'; } catch (e) {}
+            },
+            { id: 'network', name: 'Network', icon: 'bi-wifi', category: 'Network', permission: false,
+                execute: () => {
+                    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                    const d = { Online: navigator.onLine ? '✅' : '❌' };
+                    if (conn) {
+                        d.Type = conn.effectiveType || '—';
+                        d.Downlink = conn.downlink ? conn.downlink + ' Mbps' : '—';
+                        d.RTT = conn.rtt ? conn.rtt + ' ms' : '—';
+                    } else {
+                        d['Network API'] = 'not supported';
                     }
                     return { status: 'supported', details: d };
-                } catch (e) {
-                    return { status: 'error', error: e.message, details: { Error: e.message } };
                 }
-            }
-        }, {
-            id: 'crypto',
-            name: 'Crypto',
-            icon: 'bi-lock',
-            category: 'Security',
-            permission: false,
-            execute: () => {
-                if (!('crypto' in window) || !('getRandomValues' in window.crypto)) {
-                    return { status: 'unsupported', details: { Error: 'Crypto API missing' } };
-                }
-                return { status: 'supported', details: { Random: '✅', Subtle: window.crypto.subtle ? '✅' : '❌' } };
-            }
-        }, {
-            id: 'webrtc',
-            name: 'WebRTC',
-            icon: 'bi-phone-vibrate',
-            category: 'Network',
-            permission: false,
-            execute: () => {
-                const h = 'RTCPeerConnection' in window || 'webkitRTCPeerConnection' in window;
-                const hm = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-                return { status: h ? 'supported' : 'unsupported', details: { RTCPeer: h ? '✅' : '❌',
-                        getUserMedia: hm ? '✅' : '❌' } };
-            }
-        }, {
-            id: 'fullscreen',
-            name: 'Fullscreen',
-            icon: 'bi-arrows-fullscreen',
-            category: 'Browser',
-            permission: false,
-            execute: () => {
-                const supported = 'requestFullscreen' in document.documentElement;
-                return { status: supported ? 'supported' : 'unsupported', details: { Fullscreen: supported ? '✅' :
-                            '❌' } };
-            }
-        }, {
-            id: 'wakelock',
-            name: 'Wake Lock',
-            icon: 'bi-sun',
-            category: 'Browser',
-            permission: false,
-            execute: () => {
-                const supported = 'wakeLock' in navigator;
-                return { status: supported ? 'supported' : 'unsupported', details: { WakeLock: supported ? '✅' :
-                            '❌' } };
-            }
-        }, {
-            id: 'share',
-            name: 'Share',
-            icon: 'bi-share',
-            category: 'Browser',
-            permission: false,
-            execute: () => {
-                const supported = 'share' in navigator;
-                return { status: supported ? 'supported' : 'unsupported', details: { Share: supported ? '✅' :
-                            '❌' } };
-            }
-        }, {
-            id: 'vibration',
-            name: 'Vibration',
-            icon: 'bi-phone',
-            category: 'Device',
-            permission: false,
-            execute: () => {
-                const supported = 'vibrate' in navigator;
-                return { status: supported ? 'supported' : 'unsupported', details: { Vibrate: supported ? '✅' :
-                            '❌' } };
-            }
-        }, {
-            id: 'speech',
-            name: 'Speech',
-            icon: 'bi-mic-fill',
-            category: 'Media',
-            permission: false,
-            execute: () => {
-                const supported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
-                return { status: supported ? 'supported' : 'unsupported', details: { SpeechRecog: supported ? '✅' :
-                            '❌' } };
-            }
-        }, {
-            id: 'sw',
-            name: 'Service Worker',
-            icon: 'bi-server',
-            category: 'PWA',
-            permission: false,
-            execute: async () => {
-                if (!('serviceWorker' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                try {
-                    const reg = await navigator.serviceWorker.getRegistration();
-                    return { status: 'supported', details: { Registered: reg ? '✅' : '❌', Scope: reg ? reg.scope :
-                            '—' } };
-                } catch (e) {
-                    return { status: 'error', details: { Error: 'SW error: ' + e.message } };
-                }
-            }
-        }, {
-            id: 'notifications',
-            name: 'Notifications',
-            icon: 'bi-bell',
-            category: 'Browser',
-            permission: true,
-            execute: ({ permissions }) => {
-                if (!('Notification' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                let perm = Notification.permission;
-                if (perm === 'default') {
-                    try { perm = Notification.requestPermission(); } catch {}
-                }
-                if (perm === 'granted') {
-                    try { new Notification('API Study', { body: 'Notifications are working!', icon: '🔔' }); } catch {}
-                }
-                return { status: 'supported', permission: perm, details: { Permission: perm } };
-            }
-        }, {
-            id: 'orientation',
-            name: 'Screen Orientation',
-            icon: 'bi-rotate',
-            category: 'Device',
-            permission: false,
-            execute: async () => {
-                if (!screen.orientation) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                try {
-                    const orient = await screen.orientation.type;
-                    return { status: 'supported', details: { Type: orient, Angle: screen.orientation.angle } };
-                } catch { return { status: 'error', details: { Error: 'Orientation error' } }; }
-            }
-        }, {
-            id: 'performance',
-            name: 'Performance',
-            icon: 'bi-speedometer',
-            category: 'Performance',
-            permission: false,
-            execute: () => {
-                if (!('performance' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                const nav = performance.getEntriesByType('navigation')[0];
-                const d = {};
-                if (nav) {
-                    d['DOM Load'] = (nav.domComplete - nav.startTime).toFixed(0) + 'ms';
-                    d['Page Load'] = (nav.loadEventEnd - nav.startTime).toFixed(0) + 'ms';
-                }
-                if (performance.memory) d['Memory'] = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1) +
-                ' MB';
-                return { status: 'supported', details: d };
-            }
-        }, {
-            id: 'cookies',
-            name: 'Cookies',
-            icon: 'bi-cookie',
-            category: 'Storage',
-            permission: false,
-            execute: () => {
-                const enabled = navigator.cookieEnabled;
-                const count = document.cookie.split(';').filter(c => c.trim()).length;
-                return { status: enabled ? 'supported' : 'unsupported', details: { Enabled: enabled ? '✅' : '❌',
-                        Count: count } };
-            }
-        }, {
-            id: 'indexeddb',
-            name: 'IndexedDB',
-            icon: 'bi-database',
-            category: 'Storage',
-            permission: false,
-            execute: async () => {
-                if (!('indexedDB' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                try {
-                    const db = await new Promise((res, rej) => {
-                        const req = indexedDB.open('_test', 1);
-                        req.onsuccess = () => res(req.result);
-                        req.onerror = () => rej(req.error);
-                    });
-                    db.close();
-                    return { status: 'supported', details: { Open: '✅', Version: db.version } };
-                } catch { return { status: 'error', details: { Error: 'IDB error' } }; }
-            }
-        }, {
-            id: 'webgl',
-            name: 'WebGL',
-            icon: 'bi-gpu-card',
-            category: 'Graphics',
-            permission: false,
-            execute: () => {
-                try {
-                    const canvas = document.createElement('canvas');
-                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                    if (!gl) return { status: 'unsupported', details: { Error: 'WebGL context failed' } };
-                    const ext = gl.getSupportedExtensions();
+            },
+            { id: 'ipgeo', name: 'IP Geolocation', icon: 'bi-globe2', category: 'Network', permission: false,
+                execute: ({ getIPGeo }) => {
+                    const geo = getIPGeo();
+                    if (!geo) return { status: 'error', details: { Error: 'IP Geolocation data not available' } };
                     return {
                         status: 'supported',
+                        permission: 'granted',
                         details: {
-                            Vendor: gl.getParameter(gl.VENDOR) || '—',
-                            Renderer: gl.getParameter(gl.RENDERER) || '—',
-                            Extensions: ext ? ext.length : 0
+                            'IP': geo.ip || '—',
+                            'Country': geo.country_name || '—',
+                            'City': geo.city || '—',
+                            'Coordinates': geo.latitude && geo.longitude ? `${geo.latitude},${geo.longitude}` : '—',
+                            'ISP': geo.org || '—',
+                            'Time Zone': geo.timezone || '—',
+                            'ASN': geo.asn || '—'
                         }
                     };
-                } catch (e) {
-                    return { status: 'error', details: { Error: e.message } };
+                }
+            },
+            { id: 'geo', name: 'Geolocation', icon: 'bi-geo-alt', category: 'Location', permission: true,
+                execute: ({ permissions }) => {
+                    if (!('geolocation' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    if (!permissions.isGranted('geolocation')) {
+                        return { status: 'error', permission: 'denied', details: { Error: 'Permission denied. Click "GPS" button above.' } };
+                    }
+                    return new Promise((resolve) => {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => resolve({ status: 'supported', permission: 'granted', details: { Latitude: pos.coords.latitude.toFixed(4), Longitude: pos.coords.longitude.toFixed(4), Accuracy: pos.coords.accuracy + 'm' } }),
+                            (e) => resolve({ status: 'error', error: e.message, details: { Error: e.message } }),
+                            { timeout: 8000 }
+                        );
+                    });
+                }
+            },
+            // ===== FIXED: Permissions module with proper async =====
+            { id: 'permissions', name: 'Permissions', icon: 'bi-shield-lock', category: 'Security', permission: false,
+                execute: async ({ permissions }) => {
+                    if (!navigator.permissions) return { status: 'unsupported', details: { Error: 'Permissions API missing' } };
+                    const perms = ['geolocation', 'camera', 'microphone', 'notifications'];
+                    const d = {};
+                    for (const p of perms) {
+                        try {
+                            const st = await navigator.permissions.query({ name: p });
+                            d[p] = st.state || 'unknown';
+                        } catch { d[p] = 'error'; }
+                    }
+                    d.clipboard = permissions.getStatus('clipboard');
+                    return { status: 'supported', details: d };
+                }
+            },
+            { id: 'clipboard', name: 'Clipboard', icon: 'bi-clipboard', category: 'Browser', permission: true,
+                execute: ({ permissions, getClipboardContent }) => {
+                    if (!navigator.clipboard?.read) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    if (!permissions.isGranted('clipboard')) {
+                        return { status: 'error', permission: 'denied', details: { Error: 'Permission denied. Click "Clipboard" button above.' } };
+                    }
+                    const content = getClipboardContent();
+                    return {
+                        status: 'supported',
+                        permission: 'granted',
+                        details: {
+                            'Items': content.length,
+                            'Content': content.length > 0 ? content : ['No readable content']
+                        }
+                    };
+                }
+            },
+            { id: 'camera', name: 'Camera', icon: 'bi-camera', category: 'Media', permission: true,
+                execute: ({ permissions, isAndroid }) => {
+                    if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported', details: { Error: 'MediaDevices not supported' } };
+                    if (!permissions.isGranted('camera')) {
+                        return { status: 'error', permission: 'denied', details: { Error: isAndroid ? 'Please click "Camera" button and tap "Allow"' : 'Permission denied. Click "Camera" button above.' } };
+                    }
+                    return new Promise((resolve) => {
+                        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                            .then(stream => {
+                                stream.getTracks().forEach(t => t.stop());
+                                navigator.mediaDevices.enumerateDevices()
+                                    .then(devices => {
+                                        const cams = devices.filter(d => d.kind === 'videoinput');
+                                        const d = { Count: cams.length };
+                                        cams.forEach((c, i) => d[`Cam${i+1}`] = c.label || 'unnamed');
+                                        resolve({ status: 'supported', permission: 'granted', details: d });
+                                    })
+                                    .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
+                            })
+                            .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e.message || 'Camera access failed' } }));
+                    });
+                }
+            },
+            { id: 'microphone', name: 'Microphone', icon: 'bi-mic', category: 'Media', permission: true,
+                execute: ({ permissions, isAndroid }) => {
+                    if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported', details: { Error: 'MediaDevices not supported' } };
+                    if (!permissions.isGranted('microphone')) {
+                        return { status: 'error', permission: 'denied', details: { Error: isAndroid ? 'Please click "Mic" button and tap "Allow"' : 'Permission denied. Click "Mic" button above.' } };
+                    }
+                    return new Promise((resolve) => {
+                        navigator.mediaDevices.getUserMedia({ audio: true })
+                            .then(stream => {
+                                stream.getTracks().forEach(t => t.stop());
+                                navigator.mediaDevices.enumerateDevices()
+                                    .then(devices => {
+                                        const mics = devices.filter(d => d.kind === 'audioinput');
+                                        const d = { Count: mics.length };
+                                        mics.forEach((c, i) => d[`Mic${i+1}`] = c.label || 'unnamed');
+                                        resolve({ status: 'supported', permission: 'granted', details: d });
+                                    })
+                                    .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
+                            })
+                            .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e.message || 'Microphone access failed' } }));
+                    });
+                }
+            },
+            { id: 'storage', name: 'Storage', icon: 'bi-hdd-stack', category: 'Storage', permission: false,
+                execute: async () => {
+                    if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
+                        return { status: 'unsupported', details: { Error: 'Storage API not supported' } };
+                    }
+                    try {
+                        const est = await navigator.storage.estimate();
+                        const d = {
+                            'Used': (est.usage / 1024 / 1024).toFixed(1) + ' MB',
+                            'Quota': (est.quota / 1024 / 1024).toFixed(1) + ' MB'
+                        };
+                        if (navigator.storage.persisted) {
+                            try { d['Persistent'] = await navigator.storage.persisted() ? '✅' : '❌'; } catch (e) {}
+                        }
+                        return { status: 'supported', details: d };
+                    } catch (e) {
+                        return { status: 'error', error: e.message, details: { Error: e.message } };
+                    }
+                }
+            },
+            { id: 'crypto', name: 'Crypto', icon: 'bi-lock', category: 'Security', permission: false,
+                execute: () => {
+                    if (!('crypto' in window) || !('getRandomValues' in window.crypto)) {
+                        return { status: 'unsupported', details: { Error: 'Crypto API missing' } };
+                    }
+                    return { status: 'supported', details: { Random: '✅', Subtle: window.crypto.subtle ? '✅' : '❌' } };
+                }
+            },
+            { id: 'webrtc', name: 'WebRTC', icon: 'bi-phone-vibrate', category: 'Network', permission: false,
+                execute: () => {
+                    const h = 'RTCPeerConnection' in window || 'webkitRTCPeerConnection' in window;
+                    const hm = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+                    return { status: h ? 'supported' : 'unsupported', details: { RTCPeer: h ? '✅' : '❌', getUserMedia: hm ? '✅' : '❌' } };
+                }
+            },
+            { id: 'fullscreen', name: 'Fullscreen', icon: 'bi-arrows-fullscreen', category: 'Browser', permission: false,
+                execute: () => {
+                    const supported = 'requestFullscreen' in document.documentElement;
+                    return { status: supported ? 'supported' : 'unsupported', details: { Fullscreen: supported ? '✅' : '❌' } };
+                }
+            },
+            { id: 'wakelock', name: 'Wake Lock', icon: 'bi-sun', category: 'Browser', permission: false,
+                execute: () => {
+                    const supported = 'wakeLock' in navigator;
+                    return { status: supported ? 'supported' : 'unsupported', details: { WakeLock: supported ? '✅' : '❌' } };
+                }
+            },
+            { id: 'share', name: 'Share', icon: 'bi-share', category: 'Browser', permission: false,
+                execute: () => {
+                    const supported = 'share' in navigator;
+                    return { status: supported ? 'supported' : 'unsupported', details: { Share: supported ? '✅' : '❌' } };
+                }
+            },
+            { id: 'vibration', name: 'Vibration', icon: 'bi-phone', category: 'Device', permission: false,
+                execute: () => {
+                    const supported = 'vibrate' in navigator;
+                    return { status: supported ? 'supported' : 'unsupported', details: { Vibrate: supported ? '✅' : '❌' } };
+                }
+            },
+            { id: 'speech', name: 'Speech', icon: 'bi-mic-fill', category: 'Media', permission: false,
+                execute: () => {
+                    const supported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+                    return { status: supported ? 'supported' : 'unsupported', details: { SpeechRecog: supported ? '✅' : '❌' } };
+                }
+            },
+            { id: 'sw', name: 'Service Worker', icon: 'bi-server', category: 'PWA', permission: false,
+                execute: async () => {
+                    if (!('serviceWorker' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    try {
+                        const reg = await navigator.serviceWorker.getRegistration();
+                        return { status: 'supported', details: { Registered: reg ? '✅' : '❌', Scope: reg ? reg.scope : '—' } };
+                    } catch (e) {
+                        return { status: 'error', details: { Error: 'SW error: ' + e.message } };
+                    }
+                }
+            },
+            // ===== FIXED: Notifications with proper await =====
+            { id: 'notifications', name: 'Notifications', icon: 'bi-bell', category: 'Browser', permission: true,
+                execute: async () => {
+                    if (!('Notification' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    let perm = Notification.permission;
+                    if (perm === 'default') {
+                        try { perm = await Notification.requestPermission(); } catch (e) { perm = 'error'; }
+                    }
+                    if (perm === 'granted') {
+                        try { new Notification('API Study', { body: 'Notifications are working!', icon: '🔔' }); } catch (e) {}
+                    }
+                    return { status: 'supported', permission: perm, details: { Permission: perm } };
+                }
+            },
+            { id: 'orientation', name: 'Screen Orientation', icon: 'bi-rotate', category: 'Device', permission: false,
+                execute: async () => {
+                    if (!screen.orientation) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    try {
+                        const orient = await screen.orientation.type;
+                        return { status: 'supported', details: { Type: orient, Angle: screen.orientation.angle } };
+                    } catch { return { status: 'error', details: { Error: 'Orientation error' } }; }
+                }
+            },
+            { id: 'performance', name: 'Performance', icon: 'bi-speedometer', category: 'Performance', permission: false,
+                execute: () => {
+                    if (!('performance' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    const nav = performance.getEntriesByType('navigation')[0];
+                    const d = {};
+                    if (nav) {
+                        d['DOM Load'] = (nav.domComplete - nav.startTime).toFixed(0) + 'ms';
+                        d['Page Load'] = (nav.loadEventEnd - nav.startTime).toFixed(0) + 'ms';
+                    }
+                    if (performance.memory) d['Memory'] = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1) + ' MB';
+                    return { status: 'supported', details: d };
+                }
+            },
+            { id: 'cookies', name: 'Cookies', icon: 'bi-cookie', category: 'Storage', permission: false,
+                execute: () => {
+                    const enabled = navigator.cookieEnabled;
+                    const count = document.cookie.split(';').filter(c => c.trim()).length;
+                    return { status: enabled ? 'supported' : 'unsupported', details: { Enabled: enabled ? '✅' : '❌', Count: count } };
+                }
+            },
+            { id: 'indexeddb', name: 'IndexedDB', icon: 'bi-database', category: 'Storage', permission: false,
+                execute: async () => {
+                    if (!('indexedDB' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                    try {
+                        const db = await new Promise((res, rej) => {
+                            const req = indexedDB.open('_test', 1);
+                            req.onsuccess = () => res(req.result);
+                            req.onerror = () => rej(req.error);
+                        });
+                        db.close();
+                        return { status: 'supported', details: { Open: '✅', Version: db.version } };
+                    } catch { return { status: 'error', details: { Error: 'IDB error' } }; }
+                }
+            },
+            { id: 'webgl', name: 'WebGL', icon: 'bi-gpu-card', category: 'Graphics', permission: false,
+                execute: () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                        if (!gl) return { status: 'unsupported', details: { Error: 'WebGL context failed' } };
+                        const ext = gl.getSupportedExtensions();
+                        return {
+                            status: 'supported',
+                            details: {
+                                Vendor: gl.getParameter(gl.VENDOR) || '—',
+                                Renderer: gl.getParameter(gl.RENDERER) || '—',
+                                Extensions: ext ? ext.length : 0
+                            }
+                        };
+                    } catch (e) {
+                        return { status: 'error', details: { Error: e.message } };
+                    }
+                }
+            },
+            { id: 'canvas', name: 'Canvas', icon: 'bi-palette', category: 'Graphics', permission: false,
+                execute: () => {
+                    const c = document.createElement('canvas');
+                    const ctx = c.getContext('2d');
+                    if (!ctx) return { status: 'unsupported', details: { Error: 'Canvas 2D not supported' } };
+                    return { status: 'supported', details: { Width: c.width, Height: c.height, '2D': '✅' } };
                 }
             }
-        }, {
-            id: 'canvas',
-            name: 'Canvas',
-            icon: 'bi-palette',
-            category: 'Graphics',
-            permission: false,
-            execute: () => {
-                const c = document.createElement('canvas');
-                const ctx = c.getContext('2d');
-                if (!ctx) return { status: 'unsupported', details: { Error: 'Canvas 2D not supported' } };
-                return { status: 'supported', details: { Width: c.width, Height: c.height, '2D': '✅' } };
-            }
-        }];
+        ];
 
         // ===== APPLICATION INIT =====
         (function init() {
@@ -1410,11 +1190,14 @@
             const runner = new ModuleRunner(logger, permissions, device);
             const renderer = new Renderer(UI.cardContainer, logger);
             const exporter = new ExportManager(logger);
-            const chartManager = new ChartManager(UI.cardContainer, logger);
+            const chartManager = new ChartManager(UI.chartContainer, logger);
 
             moduleDefinitions.forEach(mod => runner.register(mod));
 
             UI.header.textContent = device.getHeaderText();
+
+            // Set up delegated mic listener once
+            runner.setupMicDelegatedListener();
 
             permissions.onPermissionChange(() => {
                 const summary = permissions.getSummary();
@@ -1422,11 +1205,14 @@
                 UI.permStatus.style.color = summary.granted === summary.total ? '#22c55e' : '#eab308';
             });
 
-            // Permission button delegation
+            // ===== PERMISSION BUTTON DELEGATION =====
             UI.permButtonGroup.addEventListener('click', async (e) => {
                 const btn = e.target.closest('[data-perm]');
                 if (!btn) return;
                 const perm = btn.dataset.perm;
+                
+                logger.info(`👆 User clicked: ${perm}`, 'Permissions');
+                
                 if (perm === 'all') {
                     await permissions.requestAll();
                 } else if (perm === 'camera') {
@@ -1440,11 +1226,15 @@
                 } else if (perm === 'clipboard') {
                     await permissions.requestClipboard();
                 }
+                
                 const results = runner.getResults();
                 if (Object.keys(results).length > 0) {
                     renderer.render(runner.modules, results);
                     chartManager.render(runner.getStats(), results);
-                    attachMediaControls();
+                    // Start camera previews
+                    document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
+                        runner.startCameraPreview(video);
+                    });
                 }
             });
 
@@ -1489,22 +1279,10 @@
                 const results = runner.getResults();
                 renderer.render(runner.modules, results);
                 chartManager.render(runner.getStats(), results);
-                attachMediaControls();
-            });
-
-            function attachMediaControls() {
                 document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
                     runner.startCameraPreview(video);
                 });
-
-                document.querySelectorAll('.mic-record-btn').forEach(btn => {
-                    const modId = btn.dataset.module;
-                    const playBtn = document.querySelector(`.mic-play-btn[data-module="${modId}"]`);
-                    const stopBtn = document.querySelector(`.mic-stop-btn[data-module="${modId}"]`);
-                    const status = document.querySelector(`.mic-status[data-module="${modId}"]`);
-                    runner.setupMicControls(btn, playBtn, stopBtn, status);
-                });
-            }
+            });
 
             window.addEventListener('beforeunload', () => {
                 runner.cleanup();
@@ -1528,7 +1306,9 @@
                 const results = runner.getResults();
                 renderer.render(runner.modules, results);
                 chartManager.render(runner.getStats(), results);
-                attachMediaControls();
+                document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
+                    runner.startCameraPreview(video);
+                });
                 permissions._notify();
             }, 500);
 
