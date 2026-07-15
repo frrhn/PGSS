@@ -2,306 +2,280 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <!-- Explicitly allow camera, mic, and geolocation for this page -->
+    <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*, geolocation=*">
     <title>PharmaField · Agent Check-In</title>
+    
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <!-- Leaflet CSS (Free Maps) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Leaflet Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-        :root { --primary: #1a2a6c; --accent: #fdbb2d; --bg: #f4f7fc; }
-        body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; padding-bottom: 80px; }
-        .header { background: linear-gradient(135deg, var(--primary), #b21f1f); color: white; padding: 1.5rem 1rem; border-radius: 0 0 1.5rem 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .card-field { border: none; border-radius: 1rem; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1rem; }
-        .card-header-custom { background: transparent; border-bottom: 1px solid #eee; font-weight: 600; padding: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary); }
-        .btn-action { width: 100%; padding: 0.8rem; font-weight: 600; border-radius: 0.8rem; margin-bottom: 0.5rem; }
-        #map { height: 200px; border-radius: 0.8rem; margin-top: 0.5rem; z-index: 1; }
-        .preview-box { background: #000; border-radius: 0.8rem; overflow: hidden; margin-top: 0.5rem; max-height: 200px; display: flex; align-items: center; justify-content: center; }
-        .preview-box img, .preview-box video { max-width: 100%; max-height: 200px; object-fit: cover; }
-        .status-badge { font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 20px; }
-        .log-console { background: #1e293b; color: #a5f3fc; font-family: monospace; font-size: 0.75rem; padding: 0.8rem; border-radius: 0.8rem; max-height: 150px; overflow-y: auto; }
-        .recording-pulse { animation: pulse-red 1.5s infinite; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        :root { --bg-body: #f4f7fc; --card-bg: #ffffff; --text-primary: #1e293b; --primary: #1a2a6c; }
+        body { background: var(--bg-body); color: var(--text-primary); font-family: 'Segoe UI', system-ui, sans-serif; padding-bottom: 2rem; }
+        .dashboard-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 1.5rem 0; border-radius: 0 0 2rem 2rem; box-shadow: 0 8px 20px rgba(0,0,0,0.15); margin-bottom: 1.5rem; }
+        .card-api { border: none; border-radius: 1rem; background: var(--card-bg); box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+        .card-header { background: transparent; border-bottom: 1px solid #eee; font-weight: 600; padding: 0.8rem 1rem; }
+        .console-log { background: #0f172a; color: #a5f3fc; border-radius: 8px; padding: 0.8rem; font-family: monospace; font-size: 0.75rem; max-height: 150px; overflow-y: auto; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #1e293b; padding-bottom: 2px; }
+        .log-entry.error { color: #f87171; }
+        .log-entry.success { color: #34d399; }
+        .log-entry.warn { color: #fbbf24; }
+        #map { height: 200px; border-radius: 8px; margin-top: 0.5rem; }
+        .media-preview { max-width: 100%; border-radius: 8px; margin-top: 8px; background: #000; }
+        .btn-action { width: 100%; margin-bottom: 0.5rem; font-weight: 600; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="header d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0 fw-bold"><i class="bi bi-briefcase-fill"></i> PharmaField</h4>
-            <small class="opacity-75">Agent Check-In & Proof of Work</small>
+    <div class="container" id="app">
+        <div class="dashboard-header text-center">
+            <h1 class="h4 mb-1"><i class="bi bi-shield-check"></i> PharmaField</h1>
+            <p class="mb-0 opacity-75 small">Agent Check-In & Proof of Work</p>
+            <p class="mb-0 small mt-1">Agent: <strong>#8842</strong></p>
         </div>
-        <span class="badge bg-light text-dark" id="agentId">Agent: #8842</span>
-    </div>
 
-    <div class="mt-3">
-        <!-- Location Card -->
-        <div class="card card-field">
-            <div class="card-header-custom"><i class="bi bi-geo-alt-fill text-danger"></i> Site Verification</div>
+        <!-- GPS Card -->
+        <div class="card card-api">
+            <div class="card-header"><i class="bi bi-geo-alt-fill text-danger"></i> Site Verification</div>
             <div class="card-body">
-                <div id="locationStatus" class="mb-2"><span class="status-badge bg-secondary text-white">Waiting for GPS...</span></div>
+                <button class="btn btn-primary btn-action" onclick="getLocation()">📍 Capture Current Location</button>
+                <div id="gpsStatus" class="small text-muted mb-2">Waiting for GPS...</div>
                 <div id="map"></div>
-                <button class="btn btn-primary btn-action mt-2" onclick="captureLocation()">
-                    <i class="bi bi-crosshair"></i> Capture Current Location
-                </button>
             </div>
         </div>
 
         <!-- Camera Card -->
-        <div class="card card-field">
-            <div class="card-header-custom"><i class="bi bi-camera-fill text-primary"></i> Site Photo Proof</div>
+        <div class="card card-api">
+            <div class="card-header"><i class="bi bi-camera-fill text-primary"></i> Site Photo Proof</div>
             <div class="card-body">
-                <div class="preview-box" id="cameraPreview">
-                    <span class="text-white-50">No photo captured</span>
-                </div>
-                <video id="videoFeed" autoplay playsinline style="display:none; width:100%; border-radius:0.8rem;"></video>
-                <div class="d-flex gap-2 mt-2">
-                    <button class="btn btn-outline-primary flex-grow-1" onclick="startCamera()"><i class="bi bi-camera"></i> Open Camera</button>
-                    <button class="btn btn-success flex-grow-1" onclick="takePhoto()" id="snapBtn" disabled><i class="bi bi-capture"></i> Capture</button>
-                </div>
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="form-control mb-2" onchange="handlePhoto(this)">
+                <div id="photoPreview"></div>
             </div>
         </div>
 
-        <!-- Audio Card -->
-        <div class="card card-field">
-            <div class="card-header-custom"><i class="bi bi-mic-fill text-warning"></i> Client Conversation Summary</div>
+        <!-- Mic Card -->
+        <div class="card card-api">
+            <div class="card-header"><i class="bi bi-mic-fill text-warning"></i> Client Conversation Summary</div>
             <div class="card-body">
-                <p class="small text-muted mb-2">Record a brief summary of the client interaction for compliance and proof.</p>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-danger flex-grow-1" id="recordBtn" onclick="toggleRecording()">
-                        <i class="bi bi-mic"></i> <span id="recordText">Start Recording</span>
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="playRecording()" id="playBtn" disabled>
-                        <i class="bi bi-play-fill"></i> Play
-                    </button>
-                </div>
-                <div id="audioStatus" class="small text-muted mt-2 text-center">Ready to record</div>
+                <p class="small text-muted">Record a brief summary of the client interaction for compliance.</p>
+                <button class="btn btn-warning btn-action text-dark" id="recordBtn" onclick="toggleRecording()">🎤 Start Recording</button>
+                <div id="audioStatus" class="small text-muted mt-2">Ready to record</div>
+                <audio id="audioPlayback" controls class="w-100 mt-2" style="display:none;"></audio>
             </div>
         </div>
 
         <!-- Submit Card -->
-        <div class="card card-field border-primary">
+        <div class="card card-api">
             <div class="card-body">
-                <button class="btn btn-primary btn-action btn-lg" onclick="submitCheckIn()" id="submitBtn" disabled>
-                    <i class="bi bi-cloud-upload-fill"></i> Submit Check-In to HQ
-                </button>
-                <div class="log-console mt-2" id="consoleLog">
-                    <div>⏳ System ready. Waiting for agent actions...</div>
-                </div>
+                <button class="btn btn-success btn-action btn-lg" onclick="submitCheckIn()">🚀 Submit Check-In to HQ</button>
             </div>
         </div>
+
+        <!-- Console Log -->
+        <div class="console-log" id="consoleLog">
+            <div class="log-entry">[System] App initialized. Waiting for actions...</div>
+        </div>
     </div>
-</div>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    // ===== STATE MANAGEMENT =====
-    const state = {
-        location: null,
-        photoBlob: null,
-        audioBlob: null,
-        mediaRecorder: null,
-        audioChunks: [],
-        stream: null
-    };
+    <script>
+        // ==========================================
+        // 1. SUPABASE CONFIGURATION
+        // ==========================================
+        const SUPABASE_URL = 'https://sxpvroftqiglonpmghjp.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_922ZnL9I7l_-pkktN19CGw_5V-HlrgY'; // <-- PASTE YOUR ANON KEY HERE
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const AGENT_ID = '8842';
 
-    // ===== MAP INITIALIZATION (Free OpenStreetMap) =====
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-    let marker = null;
+        // ==========================================
+        // 2. STATE VARIABLES
+        // ==========================================
+        let currentLat = null;
+        let currentLng = null;
+        let map, marker;
+        let photoFile = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let audioFile = null;
 
-    // ===== LOGGER =====
-    function log(msg, type = 'info') {
-        const consoleEl = document.getElementById('consoleLog');
-        const color = type === 'error' ? '#f87171' : type === 'success' ? '#34d399' : '#a5f3fc';
-        consoleEl.innerHTML += `<div style="color:${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-    }
-
-    // ===== 1. CAPTURE LOCATION =====
-    function captureLocation() {
-        log("Requesting GPS coordinates...", "info");
-        if (!navigator.geolocation) {
-            log("Geolocation not supported by this browser.", "error");
-            return;
+        // ==========================================
+        // 3. LOGGING UTILITY
+        // ==========================================
+        function log(msg, type = 'info') {
+            const consoleEl = document.getElementById('consoleLog');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `log-entry ${type}`;
+            div.textContent = `[${time}] ${msg}`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
         }
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                state.location = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                    accuracy: position.coords.accuracy
-                };
-                
-                // Update UI
-                document.getElementById('locationStatus').innerHTML = 
-                    `<span class="status-badge bg-success text-white">✅ GPS Acquired (±${Math.round(state.location.accuracy)}m)</span>`;
-                
-                // Update Map
-                map.setView([state.location.lat, state.location.lng], 16);
-                if (marker) map.removeLayer(marker);
-                marker = L.marker([state.location.lat, state.location.lng]).addTo(map)
-                    .bindPopup("Agent Location").openPopup();
-                
-                log(`Location captured: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`, "success");
-                checkReadyToSubmit();
-            },
-            (error) => {
-                log(`GPS Error: ${error.message}. Ensure permissions are granted.`, "error");
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    }
 
-    // ===== 2. CAMERA FUNCTIONS =====
-    async function startCamera() {
-        try {
-            log("Requesting camera access...", "info");
-            state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-            const video = document.getElementById('videoFeed');
-            video.srcObject = state.stream;
-            video.style.display = 'block';
-            document.getElementById('cameraPreview').style.display = 'none';
-            document.getElementById('snapBtn').disabled = false;
-            log("Camera active.", "success");
-        } catch (err) {
-            log(`Camera access denied or failed: ${err.message}`, "error");
+        // ==========================================
+        // 4. GPS & MAP LOGIC
+        // ==========================================
+        function initMap() {
+            map = L.map('map').setView([32.0724, 72.6823], 13); // Default to Pakistan coords based on your logs
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
         }
-    }
+        initMap();
 
-    function takePhoto() {
-        const video = document.getElementById('videoFeed');
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        canvas.toBlob((blob) => {
-            state.photoBlob = blob;
-            const url = URL.createObjectURL(blob);
-            document.getElementById('cameraPreview').innerHTML = `<img src="${url}" alt="Captured Photo">`;
-            document.getElementById('cameraPreview').style.display = 'flex';
-            video.style.display = 'none';
-            
-            // Stop camera stream to save battery
-            state.stream.getTracks().forEach(track => track.stop());
-            log("Photo captured successfully.", "success");
-            checkReadyToSubmit();
-        }, 'image/jpeg', 0.8);
-    }
-
-    // ===== 3. AUDIO RECORDING FUNCTIONS =====
-    async function toggleRecording() {
-        const btn = document.getElementById('recordBtn');
-        const status = document.getElementById('audioStatus');
-
-        if (!state.mediaRecorder || state.mediaRecorder.state === 'inactive') {
-            try {
-                log("Requesting microphone access...", "info");
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                state.mediaRecorder = new MediaRecorder(stream);
-                state.audioChunks = [];
-
-                state.mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) state.audioChunks.push(e.data);
-                };
-
-                state.mediaRecorder.onstop = () => {
-                    state.audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
-                    log(`Audio recorded: ${(state.audioBlob.size / 1024).toFixed(1)} KB`, "success");
-                    document.getElementById('playBtn').disabled = false;
-                    checkReadyToSubmit();
-                };
-
-                state.mediaRecorder.start();
-                btn.classList.add('recording-pulse');
-                document.getElementById('recordText').textContent = "Stop Recording";
-                status.textContent = "🔴 Recording in progress...";
-                log("Recording started.", "info");
-            } catch (err) {
-                log(`Microphone access denied: ${err.message}`, "error");
+        function getLocation() {
+            log("Requesting GPS coordinates...");
+            if (!navigator.geolocation) {
+                log("Geolocation is not supported by this browser.", "error");
+                return;
             }
-        } else {
-            state.mediaRecorder.stop();
-            state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            btn.classList.remove('recording-pulse');
-            document.getElementById('recordText').textContent = "Start Recording";
-            status.textContent = "✅ Recording saved. Ready to submit.";
-        }
-    }
-
-    function playRecording() {
-        if (!state.audioBlob) return;
-        const url = URL.createObjectURL(state.audioBlob);
-        new Audio(url).play();
-        log("Playing back audio...", "info");
-    }
-
-    // ===== 4. SUBMIT TO API =====
-    function checkReadyToSubmit() {
-        if (state.location && state.photoBlob) {
-            document.getElementById('submitBtn').disabled = false;
-        }
-    }
-
-    async function submitCheckIn() {
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading to HQ...';
-        log("Preparing payload for API...", "info");
-
-        // Create FormData to send files and text together
-        const formData = new FormData();
-        formData.append('agentId', '8842');
-        formData.append('timestamp', new Date().toISOString());
-        formData.append('latitude', state.location.lat);
-        formData.append('longitude', state.location.lng);
-        formData.append('accuracy', state.location.accuracy);
-        formData.append('photo', state.photoBlob, 'proof.jpg');
-        if (state.audioBlob) {
-            formData.append('audio', state.audioBlob, 'summary.webm');
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentLat = position.coords.latitude;
+                    currentLng = position.coords.longitude;
+                    document.getElementById('gpsStatus').innerHTML = `<span class="text-success">✅ GPS Acquired (±${Math.round(position.coords.accuracy)}m)</span>`;
+                    log(`Location captured: ${currentLat}, ${currentLng}`, "success");
+                    
+                    if (map) {
+                        map.setView([currentLat, currentLng], 16);
+                        if (marker) map.removeLayer(marker);
+                        marker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("Agent Location").openPopup();
+                    }
+                },
+                (error) => {
+                    log(`GPS Error: ${error.message}`, "error");
+                    if (error.code === 1) log("ACTION: Please enable Location Services for this site in browser settings.", "warn");
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
         }
 
-        try {
-            // ======================================================================
-            // TODO: REPLACE THIS URL WITH YOUR ACTUAL API ENDPOINT
-            // Example: 'https://your-free-supabase-project.supabase.co/rest/v1/checkins'
-            // For now, we simulate a successful network request.
-            // ======================================================================
-            
-            // Simulating network delay
-            await new Promise(resolve => setTimeout(resolve, 1500)); 
-            
-            // const response = await fetch('YOUR_API_ENDPOINT_HERE', {
-            //     method: 'POST',
-            //     body: formData
-            // });
-            // if (!response.ok) throw new Error('API request failed');
-
-            log("✅ Check-in successfully transmitted to HQ!", "success");
-            alert("Check-In Submitted Successfully!\nLocation, Photo, and Audio have been sent to the manager dashboard.");
-            
-            // Reset form
-            state.location = null; state.photoBlob = null; state.audioBlob = null;
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-cloud-upload-fill"></i> Submit Check-In to HQ';
-            document.getElementById('locationStatus').innerHTML = '<span class="status-badge bg-secondary text-white">Waiting for GPS...</span>';
-            document.getElementById('cameraPreview').innerHTML = '<span class="text-white-50">No photo captured</span>';
-            document.getElementById('audioStatus').textContent = "Ready to record";
-            document.getElementById('playBtn').disabled = true;
-
-        } catch (error) {
-            log(`Upload failed: ${error.message}`, "error");
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="bi bi-cloud-upload-fill"></i> Retry Submission';
+        // ==========================================
+        // 5. CAMERA LOGIC
+        // ==========================================
+        function handlePhoto(input) {
+            if (input.files && input.files[0]) {
+                photoFile = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('photoPreview').innerHTML = `<img src="${e.target.result}" class="media-preview">`;
+                    log("Photo captured successfully.", "success");
+                }
+                reader.readAsDataURL(photoFile);
+            }
         }
-    }
-</script>
+
+        // ==========================================
+        // 6. MICROPHONE LOGIC
+        // ==========================================
+        async function toggleRecording() {
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('audioStatus');
+
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                try {
+                    log("Requesting microphone access...");
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        const playback = document.getElementById('audioPlayback');
+                        playback.src = audioUrl;
+                        playback.style.display = 'block';
+                        log("Audio recording saved.", "success");
+                    };
+
+                    mediaRecorder.start();
+                    btn.textContent = "⏹ Stop Recording";
+                    btn.classList.replace('btn-warning', 'btn-danger');
+                    status.textContent = "🔴 Recording...";
+                    log("Recording started.", "warn");
+                } catch (err) {
+                    log(`Microphone denied: ${err.name} - ${err.message}`, "error");
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        log("CRITICAL: Go to Chrome > Settings > Site Settings > Microphone, and ALLOW this site.", "warn");
+                    }
+                }
+            } else {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop()); // Release mic
+                btn.textContent = "🎤 Start Recording";
+                btn.classList.replace('btn-danger', 'btn-warning');
+                status.textContent = "Recording complete. Ready to submit.";
+            }
+        }
+
+        // ==========================================
+        // 7. SUBMIT TO SUPABASE
+        // ==========================================
+        async function submitCheckIn() {
+            if (!currentLat || !currentLng) {
+                log("Please capture GPS location first.", "error");
+                return;
+            }
+            if (!photoFile) {
+                log("Please capture a site photo.", "error");
+                return;
+            }
+
+            log("Uploading data to HQ (Supabase)...", "warn");
+            const btn = document.querySelector('button[onclick="submitCheckIn()"]');
+            btn.disabled = true;
+            btn.textContent = "⏳ Uploading...";
+
+            try {
+                const timestamp = new Date().toISOString();
+                const photoPath = `photos/${AGENT_ID}_${Date.now()}.jpg`;
+                const audioPath = audioFile ? `audios/${AGENT_ID}_${Date.now()}.webm` : null;
+
+                // 1. Upload Photo
+                log("Uploading photo...");
+                const { error: photoError } = await supabase.storage.from('proofs').upload(photoPath, photoFile);
+                if (photoError) throw new Error(`Photo upload failed: ${photoError.message}`);
+
+                // 2. Upload Audio (if exists)
+                if (audioFile) {
+                    log("Uploading audio...");
+                    const { error: audioError } = await supabase.storage.from('proofs').upload(audioPath, audioFile);
+                    if (audioError) throw new Error(`Audio upload failed: ${audioError.message}`);
+                }
+
+                // 3. Insert Record into Database
+                log("Saving check-in record...");
+                const { error: dbError } = await supabase.from('checkins').insert({
+                    agent_id: AGENT_ID,
+                    timestamp: timestamp,
+                    latitude: currentLat,
+                    longitude: currentLng,
+                    photo_url: photoPath,
+                    audio_url: audioPath
+                });
+
+                if (dbError) throw new Error(`Database save failed: ${dbError.message}`);
+
+                log("✅ Check-in submitted successfully to HQ!", "success");
+                alert("Check-in successful! Data synced with HQ.");
+                
+                // Reset form
+                btn.disabled = false;
+                btn.textContent = "🚀 Submit Check-In to HQ";
+
+            } catch (error) {
+                log(`Submission failed: ${error.message}`, "error");
+                btn.disabled = false;
+                btn.textContent = "🚀 Submit Check-In to HQ";
+                alert("Upload failed. Check console log for details.");
+            }
+        }
+    </script>
 </body>
 </html>
