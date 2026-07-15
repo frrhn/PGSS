@@ -17,8 +17,10 @@
         .log-entry { margin-bottom: 4px; border-bottom: 1px solid #1e293b; padding-bottom: 2px; }
         .log-entry.error { color: #f87171; }
         .log-entry.success { color: #34d399; }
+        .log-entry.info { color: #60a5fa; }
         #map { height: 200px; border-radius: 8px; margin-top: 0.5rem; display: none; }
         .media-preview { max-width: 100%; border-radius: 8px; margin-top: 8px; }
+        .action-btn-label { cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -42,31 +44,36 @@
         <div class="card card-api">
             <div class="card-header"><i class="bi bi-camera-fill text-primary"></i> 2. Site Photo Proof</div>
             <div class="card-body">
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="form-control mb-2" onchange="testCamera(this)">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="d-none" onchange="testCamera(this)">
+                <label for="cameraInput" class="btn btn-outline-primary w-100 mb-2 action-btn-label">
+                    <i class="bi bi-camera"></i> Open Camera / Choose Photo
+                </label>
                 <div id="photoPreview"></div>
             </div>
         </div>
 
-        <!-- Mic Card -->
+        <!-- Microphone Card (NATIVE FALLBACK METHOD) -->
         <div class="card card-api">
             <div class="card-header"><i class="bi bi-mic-fill text-warning"></i> 3. Client Conversation Summary</div>
             <div class="card-body">
-                <button class="btn btn-warning w-100 mb-2 text-dark" id="recordBtn" onclick="testMic()">🎤 Start Recording</button>
-                <div id="audioStatus" class="small text-muted">Waiting for action...</div>
+                <p class="small text-muted mb-2">Tap to open the native voice recorder.</p>
+                <!-- This uses the Android/iOS native recorder, bypassing browser JS mic permissions entirely -->
+                <input type="file" id="micInput" accept="audio/*" capture="microphone" class="d-none" onchange="testMicNative(this)">
+                <label for="micInput" class="btn btn-outline-warning w-100 mb-2 action-btn-label text-dark">
+                    <i class="bi bi-mic"></i> Record Audio (Native)
+                </label>
+                <div id="audioStatus" class="small text-muted">Waiting for recording...</div>
                 <audio id="audioPlayback" controls class="w-100 mt-2" style="display:none;"></audio>
-            </div>
+            </div “>
         </div>
 
         <!-- Console Log -->
         <div class="console-log" id="consoleLog">
-            <div class="log-entry success">[System] DEBUG MODE ACTIVE. Waiting for actions...</div>
+            <div class="log-entry success">[System] DEBUG MODE ACTIVE.</div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // DEBUG LOGGING UTILITY
-        // ==========================================
         function log(msg, type = 'info') {
             const consoleEl = document.getElementById('consoleLog');
             const time = new Date().toLocaleTimeString();
@@ -75,22 +82,12 @@
             div.textContent = `[${time}] ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
-            console.log(`[${type.toUpperCase()}] ${msg}`); // Also log to browser dev tools
+            console.log(`[${type.toUpperCase()}] ${msg}`);
         }
 
-        // ==========================================
         // 1. GPS TEST
-        // ==========================================
         function testGPS() {
-            alert("DEBUG: testGPS() function was triggered!");
             log("Requesting GPS coordinates...");
-            
-            if (!navigator.geolocation) {
-                log("Geolocation is NOT supported by this browser.", "error");
-                alert("ERROR: Geolocation not supported");
-                return;
-            }
-
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const lat = position.coords.latitude;
@@ -98,7 +95,6 @@
                     document.getElementById('gpsStatus').innerHTML = `<span class="text-success fw-bold">✅ GPS Acquired: ${lat.toFixed(4)}, ${lng.toFixed(4)}</span>`;
                     log(`SUCCESS: Location captured`, "success");
                     
-                    // Show map
                     const mapEl = document.getElementById('map');
                     mapEl.style.display = 'block';
                     if (!window.debugMap) {
@@ -111,81 +107,40 @@
                     window.debugMarker = L.marker([lat, lng]).addTo(window.debugMap).bindPopup("You are here").openPopup();
                 },
                 (error) => {
-                    log(`GPS ERROR: ${error.message} (Code: ${error.code})`, "error");
-                    alert(`GPS ERROR: ${error.message}`);
+                    log(`GPS ERROR: ${error.message}`, "error");
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         }
 
-        // ==========================================
         // 2. CAMERA TEST
-        // ==========================================
         function testCamera(input) {
-            alert("DEBUG: testCamera() function was triggered!");
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                log(`SUCCESS: File selected - ${file.name} (${(file.size/1024).toFixed(1)} KB)`, "success");
-                
+                log(`SUCCESS: Photo selected - ${file.name}`, "success");
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('photoPreview').innerHTML = `<img src="${e.target.result}" class="media-preview border">`;
                     log("SUCCESS: Photo rendered on screen", "success");
                 }
                 reader.readAsDataURL(file);
-            } else {
-                log("WARNING: No file selected", "error");
             }
         }
 
-        // ==========================================
-        // 3. MICROPHONE TEST
-        // ==========================================
-        let mediaRecorder = null;
-        let audioChunks = [];
-
-        async function testMic() {
-            alert("DEBUG: testMic() function was triggered!");
-            const btn = document.getElementById('recordBtn');
-            const status = document.getElementById('audioStatus');
-
-            if (!mediaRecorder || mediaRecorder.state === "inactive") {
-                log("Requesting microphone access...");
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    log("SUCCESS: Microphone access granted", "success");
-                    
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-
-                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-                    mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        const playback = document.getElementById('audioPlayback');
-                        playback.src = audioUrl;
-                        playback.style.display = 'block';
-                        status.textContent = "✅ Recording saved and ready to play.";
-                        status.className = "small text-success fw-bold";
-                        log("SUCCESS: Audio recording saved", "success");
-                    };
-
-                    mediaRecorder.start();
-                    btn.textContent = "⏹ Stop Recording";
-                    btn.classList.replace('btn-warning', 'btn-danger');
-                    status.textContent = "🔴 Recording in progress...";
-                    status.className = "small text-danger fw-bold";
-                    log("Recording started...", "info");
-
-                } catch (err) {
-                    log(`MIC ERROR: ${err.name} - ${err.message}`, "error");
-                    alert(`MIC ERROR: ${err.message}\n\nPlease check browser settings to allow microphone.`);
-                }
+        // 3. NATIVE MICROPHONE TEST (Bypasses getUserMedia bugs)
+        function testMicNative(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                log(`SUCCESS: Audio recorded - ${file.name} (${(file.size/1024).toFixed(1)} KB)`, "success");
+                
+                const audioUrl = URL.createObjectURL(file);
+                const playback = document.getElementById('audioPlayback');
+                playback.src = audioUrl;
+                playback.style.display = 'block';
+                
+                document.getElementById('audioStatus').innerHTML = `<span class="text-success fw-bold">✅ Recording saved and ready to play.</span>`;
             } else {
-                mediaRecorder.stop();
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                btn.textContent = "🎤 Start Recording";
-                btn.classList.replace('btn-danger', 'btn-warning');
+                log("WARNING: No audio file selected", "error");
             }
         }
     </script>
