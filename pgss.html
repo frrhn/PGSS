@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>📊 API Study · Enterprise</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #f4f7fc;
+            --card-bg: rgba(255,255,255,0.85);
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-light: rgba(0,0,0,0.05);
+            --shadow: 0 6px 18px rgba(0,20,40,0.08);
+        }
+        [data-theme="dark"] {
+            --bg-body: #0f172a;
+            --card-bg: rgba(30,41,59,0.9);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-light: rgba(255,255,255,0.08);
+            --shadow: 0 6px 18px rgba(0,0,0,0.4);
+        }
+        body { background: var(--bg-body); color: var(--text-primary); font-family: 'Segoe UI', system-ui, sans-serif; padding-bottom: 2rem; transition: background 0.2s, color 0.2s; }
+        .dashboard-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); background-size: 300% 300%; animation: gradientShift 8s ease infinite; color: white; padding: 1rem 0 0.8rem; border-radius: 0 0 2rem 2rem; box-shadow: 0 8px 20px rgba(0,0,0,0.2); margin-bottom: 1.8rem; }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .header-title { font-weight: 600; letter-spacing: 1px; }
+        .header-sub { font-size: 0.9rem; opacity: 0.85; }
+        .card-api { border: none; border-radius: 1.2rem; background: var(--card-bg); backdrop-filter: blur(2px); border: 1px solid var(--border-light); box-shadow: var(--shadow); transition: 0.15s; height: 100%; color: var(--text-primary); }
+        .card-api:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,20,40,0.12); }
+        .card-api .card-header { background: transparent; border-bottom: 1px solid var(--border-light); font-weight: 600; font-size: 0.9rem; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .card-api .card-header i { font-size: 1.2rem; width: 1.6rem; color: #1a2a6c; }
+        [data-theme="dark"] .card-api .card-header i { color: #8b9dff; }
+        .card-body { padding: 0.6rem 1rem 1rem; font-size: 0.85rem; }
+        .value-badge { background: #eef3fa; padding: 0.1rem 0.6rem; border-radius: 20px; font-size: 0.7rem; color: #1e293b; display: inline-block; word-break: break-word; }
+        [data-theme="dark"] .value-badge { background: #334155; color: #e2e8f0; }
+        .list-detail { list-style: none; padding-left: 0; margin-bottom: 0.2rem; }
+        .list-detail li { padding: 0.15rem 0; border-bottom: 1px dashed var(--border-light); display: flex; justify-content: space-between; flex-wrap: wrap; }
+        .list-detail li:last-child { border-bottom: none; }
+        .small-text { font-size: 0.7rem; color: var(--text-secondary); }
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-ok { background: #22c55e; } .status-warn { background: #eab308; } .status-err { background: #ef4444; }
+        .footer-note { text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 2rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; }
+        .progress-indicator { height: 4px; background: #e2e8f0; border-radius: 4px; margin: 0.3rem 0; overflow: hidden; }
+        .progress-indicator .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s; }
+        .console-log { background: #0f172a; color: #a5f3fc; border-radius: 12px; padding: 0.4rem 1rem; font-family: 'Courier New', monospace; font-size: 0.7rem; max-height: 70px; overflow-y: auto; border: 1px solid #334155; margin-top: 0.5rem; }
+        .console-log .log-entry { opacity: 0.9; border-bottom: 1px solid #1e293b; padding: 0.05rem 0; }
+        .console-log .log-entry.error { color: #f87171; }
+        .console-log .log-entry.warn { color: #fbbf24; }
+        .console-log .log-entry.success { color: #34d399; }
+        .theme-toggle { cursor: pointer; background: rgba(255,255,255,0.15); border-radius: 30px; padding: 0.2rem 0.8rem; border: 1px solid rgba(255,255,255,0.2); color: white; }
+        .theme-toggle:hover { background: rgba(255,255,255,0.25); }
+        .stat-card { background: var(--card-bg); border-radius: 1rem; padding: 0.3rem 0.6rem; text-align: center; border: 1px solid var(--border-light); }
+        .media-preview { max-width: 100%; border-radius: 12px; margin-top: 6px; background: #000; max-height: 120px; }
+        .permission-request-banner { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 0.5rem 1rem; border-radius: 12px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .permission-request-banner .btn { font-size: 0.7rem; padding: 0.15rem 0.6rem; }
+        .filter-badge { cursor: pointer; padding: 0.1rem 0.5rem; border-radius: 12px; font-size: 0.65rem; margin: 0.1rem; }
+        .filter-badge.active { background: #3b82f6; color: white; }
+        .filter-badge.inactive { background: #e2e8f0; color: #475569; }
+        [data-theme="dark"] .filter-badge.inactive { background: #334155; color: #94a3b8; }
+        .permission-btn-group { display: flex; gap: 4px; flex-wrap: wrap; }
+        .protocol-warning { background: #fef3c7; color: #92400e; padding: 0.3rem 0.8rem; border-radius: 8px; font-size: 0.75rem; margin-bottom: 0.5rem; border: 1px solid #f59e0b; }
+        .protocol-warning.danger { background: #fee2e2; color: #991b1b; border-color: #ef4444; }
+        [data-theme="dark"] .protocol-warning { background: #451a03; color: #fbbf24; border-color: #92400e; }
+        [data-theme="dark"] .protocol-warning.danger { background: #7f1d1d; color: #fca5a5; border-color: #dc2626; }
+        @media (max-width: 576px) { .dashboard-header { padding: 0.6rem 0; } .header-title { font-size: 1.1rem; } .permission-btn-group .btn { font-size: 0.6rem; padding: 0.1rem 0.4rem; } }
+        .module-timing { font-size: 0.6rem; color: var(--text-secondary); margin-top: 0.2rem; }
+        .https-required-badge { background: #ef4444; color: white; padding: 0.1rem 0.5rem; border-radius: 12px; font-size: 0.6rem; margin-left: 0.3rem; }
+        .http-warning-banner { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 0.5rem 1rem; border-radius: 12px; margin-bottom: 0.5rem; text-align: center; font-weight: bold; }
+        .http-warning-banner a { color: #fbbf24; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="dashboard-header text-center">
+            <div class="d-flex justify-content-between align-items-center px-3">
+                <h1 class="header-title"><i class="bi bi-laptop"></i> API Study · Enterprise</h1>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn btn-sm btn-outline-light" id="refreshAllBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    <span class="theme-toggle" id="themeToggle"><i class="bi bi-moon-stars"></i></span>
+                </div>
+            </div>
+            <p class="header-sub mb-0" id="deviceHeaderInfo"><i class="bi bi-phone"></i> Detecting device...</p>
+            <div class="progress-indicator"><div class="bar" id="progressBar"></div></div>
+        </div>
+
+        <div id="protocolWarningContainer"></div>
+
+        <div class="permission-request-banner" id="permBanner">
+            <span><i class="bi bi-shield-lock"></i> <span id="permStatusText">Click to request permissions</span></span>
+            <div class="permission-btn-group" id="permButtonGroup">
+                <button class="btn btn-success btn-sm" data-perm="all">Grant All</button>
+                <button class="btn btn-warning btn-sm" data-perm="camera">📷 Camera</button>
+                <button class="btn btn-warning btn-sm" data-perm="microphone">🎤 Mic</button>
+                <button class="btn btn-warning btn-sm" data-perm="geolocation">📍 GPS</button>
+                <button class="btn btn-warning btn-sm" data-perm="notifications">🔔 Notify</button>
+                <button class="btn btn-warning btn-sm" data-perm="clipboard">📋 Clipboard</button>
+            </div>
+        </div>
+
+        <div class="row g-2 mb-2" id="statsRow">
+            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-primary" id="totalApis">0</span> Total</div></div>
+            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-success" id="supportedApis">0</span> Supported</div></div>
+            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-danger" id="unsupportedApis">0</span> Unsupported</div></div>
+            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-warning text-dark" id="permissionGranted">0</span> Granted</div></div>
+            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-info" id="errorCount">0</span> Errors</div></div>
+        </div>
+
+        <div class="row g-2 mb-2">
+            <div class="col-md-4"><input type="text" class="form-control" id="searchInput" placeholder="🔍 Search APIs..."></div>
+            <div class="col-md-8 text-end" id="filterContainer">
+                <span class="filter-badge active" data-filter="all">All</span>
+                <span class="filter-badge inactive" data-filter="supported">Supported</span>
+                <span class="filter-badge inactive" data-filter="unsupported">Unsupported</span>
+                <span class="filter-badge inactive" data-filter="error">Errors</span>
+                <span class="filter-badge inactive" data-filter="permission">Needs Permission</span>
+                <button class="btn btn-sm btn-outline-secondary" data-export="json">JSON</button>
+                <button class="btn btn-sm btn-outline-secondary" data-export="csv">CSV</button>
+                <button class="btn btn-sm btn-outline-secondary" data-export="html">HTML</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">🖨️</button>
+            </div>
+        </div>
+
+        <div class="row g-3" id="cardContainer"></div>
+
+        <div class="console-log" id="consoleLog"><div class="log-entry">⏳ Initializing...</div></div>
+        <div class="footer-note"><i class="bi bi-arrow-repeat me-1"></i> Enterprise Architecture · <span id="footerTimestamp"></span></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        /* ============================================================
+           ENTERPRISE ARCHITECTURE - FIXED FOR MOBILE/HTTP
+           ============================================================ */
+
+        // ===== CACHED DOM REFERENCES =====
+        const UI = {
+            header: document.getElementById('deviceHeaderInfo'),
+            progress: document.getElementById('progressBar'),
+            console: document.getElementById('consoleLog'),
+            cardContainer: document.getElementById('cardContainer'),
+            stats: {
+                total: document.getElementById('totalApis'),
+                supported: document.getElementById('supportedApis'),
+                unsupported: document.getElementById('unsupportedApis'),
+                granted: document.getElementById('permissionGranted'),
+                errors: document.getElementById('errorCount')
+            },
+            permStatus: document.getElementById('permStatusText'),
+            permBanner: document.getElementById('permBanner'),
+            protocolWarningContainer: document.getElementById('protocolWarningContainer'),
+            footerTimestamp: document.getElementById('footerTimestamp'),
+            search: document.getElementById('searchInput'),
+            filterContainer: document.getElementById('filterContainer'),
+            permButtonGroup: document.getElementById('permButtonGroup'),
+            refreshBtn: document.getElementById('refreshAllBtn'),
+            themeToggle: document.getElementById('themeToggle')
+        };
+
+        // ===== LOGGER =====
+        class Logger {
+            constructor(consoleEl) {
+                this.consoleEl = consoleEl;
+                this.entries = [];
+                this.maxEntries = 50;
+            }
+
+            log(msg, level = 'info', module = 'System') {
+                const entry = {
+                    time: new Date().toLocaleTimeString(),
+                    module,
+                    level,
+                    message: msg
+                };
+                this.entries.push(entry);
+                const div = document.createElement('div');
+                div.className = `log-entry ${level}`;
+                div.textContent = `${entry.time} [${module}] ${msg}`;
+                this.consoleEl.appendChild(div);
+                if (this.consoleEl.children.length > this.maxEntries) {
+                    this.consoleEl.removeChild(this.consoleEl.firstChild);
+                }
+                this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
+                return entry;
+            }
+
+            info(msg, module) { return this.log(msg, 'info', module); }
+            warn(msg, module) { return this.log(msg, 'warn', module); }
+            error(msg, module) { return this.log(msg, 'error', module); }
+            success(msg, module) { return this.log(msg, 'success', module); }
+        }
+
+        // ===== THEME MANAGER =====
+        class ThemeManager {
+            constructor(toggleEl) {
+                this.toggleEl = toggleEl;
+                this.current = localStorage.getItem('theme') || 'light';
+                this.apply(this.current);
+                this.toggleEl.addEventListener('click', () => this.toggle());
+            }
+
+            apply(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                this.current = theme;
+                const icon = this.toggleEl.querySelector('i');
+                if (icon) icon.className = theme === 'dark' ? 'bi-sun' : 'bi-moon-stars';
+            }
+
+            toggle() {
+                this.apply(this.current === 'dark' ? 'light' : 'dark');
+            }
+        }
+
+        // ===== DEVICE MANAGER =====
+        class DeviceManager {
+            constructor() {
+                this.info = this.detect();
+                this._protocol = window.location.protocol;
+                this._isFileProtocol = this._protocol === 'file:';
+                this._isHttp = this._protocol === 'http:';
+                this._isHttps = this._protocol === 'https:';
+                this._isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                this._showProtocolWarning();
+            }
+
+            detect() {
+                const ua = navigator.userAgent;
+                let os = 'Unknown',
+                    osVersion = 'Unknown',
+                    deviceName = 'Unknown PC',
+                    brand = 'Unknown',
+                    model = 'Unknown';
+                const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i.test(ua);
+
+                if (ua.includes('Windows')) { os = 'Windows';
+                    osVersion = ua.match(/Windows NT (\d+\.\d+)/)?.[1] || 'Unknown';
+                    deviceName = 'PC'; } else if (ua.includes('Android')) { os = 'Android';
+                    osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Unknown';
+                    const mm = ua.match(/; (.*?) Build/); if (mm) { model = mm[1];
+                        brand = model.split(' ')[0] || 'Unknown';
+                        deviceName = model; } } else if (ua.includes('iPhone')) { os = 'iOS';
+                    osVersion = ua.match(/OS (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown';
+                    deviceName = 'iPhone';
+                    brand = 'Apple'; } else if (ua.includes('Mac OS X')) { os = 'macOS';
+                    osVersion = ua.match(/Mac OS X (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown';
+                    deviceName = 'Mac';
+                    brand = 'Apple'; } else if (ua.includes('Linux')) { os = 'Linux';
+                    deviceName = 'Linux PC'; }
+
+                let browser = 'Unknown',
+                    browserVersion = 'Unknown';
+                if (ua.includes('Chrome') && !ua.includes('Edg')) { browser = 'Chrome';
+                    browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown'; } else if (ua.includes('Firefox')) { browser =
+                        'Firefox';
+                    browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown'; } else if (ua.includes('Safari') && !ua
+                        .includes('Chrome')) { browser = 'Safari';
+                    browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown'; } else if (ua.includes('Edg')) { browser =
+                        'Edge';
+                    browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
+
+                return {
+                    os,
+                    osVersion,
+                    deviceName,
+                    model,
+                    brand,
+                    isMobile,
+                    platform: navigator.platform || 'unknown',
+                    screen: { width: screen.width, height: screen.height, pixelRatio: window.devicePixelRatio || 1 },
+                    browser,
+                    browserVersion,
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                    deviceMemory: navigator.deviceMemory || 'unknown',
+                    language: navigator.language || 'en-US'
+                };
+            }
+
+            _showProtocolWarning() {
+                const container = UI.protocolWarningContainer;
+                if (this._isHttp) {
+                    container.innerHTML = `
+                        <div class="http-warning-banner">
+                            ⚠️ <strong>HTTP Protocol Detected!</strong> 
+                            Camera, Microphone, and Clipboard APIs are BLOCKED on HTTP in Chrome/Android.
+                            <br><span style="font-size:0.8rem;">Please use HTTPS or serve via localhost for full functionality.</span>
+                            <br><span style="font-size:0.7rem;opacity:0.8;">Alternatively, enable chrome://flags/#unsafely-treat-insecure-origin-as-secure for testing.</span>
+                        </div>
+                    `;
+                } else if (this._isFileProtocol) {
+                    container.innerHTML = `
+                        <div class="protocol-warning">
+                            ⚠️ <strong>File Protocol Detected:</strong> Some APIs require HTTPS. 
+                            For local testing, use a local server (VS Code Live Server, Python HTTP server).
+                        </div>
+                    `;
+                }
+            }
+
+            get protocol() { return this._protocol; }
+            get isFileProtocol() { return this._isFileProtocol; }
+            get isHttp() { return this._isHttp; }
+            get isHttps() { return this._isHttps; }
+            get isLocalhost() { return this._isLocalhost; }
+            get canUseMediaDevices() { return this._isHttps || this._isLocalhost; }
+
+            getHeaderText() {
+                const d = this.info;
+                const icon = d.isMobile ? '📱' : '💻';
+                let protocolMsg = '';
+                if (this._isHttps) protocolMsg = ' 🔒 HTTPS';
+                else if (this._isHttp) protocolMsg = ' 🌐 HTTP ⚠️';
+                else if (this._isFileProtocol) protocolMsg = ' 📁 File';
+                return `${icon} ${d.os} ${d.osVersion} · ${d.deviceName} · ${d.browser} ${d.browserVersion} · ${d.screen.width}x${d.screen.height} · ${d.isMobile ? 'Mobile' : 'Desktop'}${protocolMsg}`;
+            }
+
+            getDetails() {
+                const d = this.info;
+                return {
+                    OS: `${d.os} ${d.osVersion}`,
+                    Device: d.deviceName || d.model,
+                    Brand: d.brand,
+                    Memory: d.deviceMemory + 'GB',
+                    Cores: d.hardwareConcurrency,
+                    Screen: `${d.screen.width}x${d.screen.height}`,
+                    Browser: `${d.browser} ${d.browserVersion}`,
+                    Language: d.language,
+                    Protocol: this._isHttps ? 'HTTPS ✅' : (this._isHttp ? 'HTTP ⚠️' : 'file://')
+                };
+            }
+        }
+
+        // ===== PERMISSION MANAGER =====
+        class PermissionManager {
+            constructor(logger, device) {
+                this.logger = logger;
+                this.device = device;
+                this.permissions = { geolocation: 'prompt', camera: 'prompt', microphone: 'prompt', notifications: 'prompt',
+                    clipboard: 'prompt' };
+                this._ipGeoData = null;
+                this._clipboardContent = [];
+                this._listeners = [];
+                this._refreshPermissionStates();
+            }
+
+            _refreshPermissionStates() {
+                if (navigator.permissions) {
+                    ['geolocation', 'camera', 'microphone', 'notifications'].forEach(p => {
+                        try {
+                            navigator.permissions.query({ name: p }).then(result => {
+                                this.permissions[p] = result.state;
+                                this._notify();
+                            }).catch(() => {});
+                        } catch (e) {}
+                    });
+                }
+            }
+
+            onPermissionChange(callback) {
+                this._listeners.push(callback);
+            }
+
+            _notify() {
+                this._listeners.forEach(cb => cb(this.permissions));
+            }
+
+            getStatus(api) { return this.permissions[api] || 'unknown'; }
+            isGranted(api) { return this.getStatus(api) === 'granted'; }
+            getIPGeo() { return this._ipGeoData; }
+            getClipboardContent() { return this._clipboardContent; }
+
+            // ===== Camera with better mobile support =====
+            async requestCamera() {
+                this.logger.info('📷 Requesting Camera permission...', 'Permissions');
+                
+                if (this.device.isHttp && !this.device.isLocalhost) {
+                    const msg = 'Camera requires HTTPS on Android/Chrome. Please use HTTPS or localhost.';
+                    this.logger.error(msg, 'Permissions');
+                    this.permissions.camera = 'error';
+                    this._notify();
+                    // Try anyway - sometimes it works on some devices
+                }
+
+                try {
+                    const constraints = {
+                        video: {
+                            facingMode: 'user',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        },
+                        audio: false
+                    };
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    stream.getTracks().forEach(t => t.stop());
+                    this.permissions.camera = 'granted';
+                    this.logger.success('Camera permission granted', 'Permissions');
+                    this._notify();
+                    return true;
+                } catch (e) {
+                    // Try without constraints
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        stream.getTracks().forEach(t => t.stop());
+                        this.permissions.camera = 'granted';
+                        this.logger.success('Camera permission granted (fallback)', 'Permissions');
+                        this._notify();
+                        return true;
+                    } catch (e2) {
+                        this.permissions.camera = e2.message?.includes('denied') ? 'denied' : 'error';
+                        this.logger.error(`Camera: ${e2.message || 'denied'}`, 'Permissions');
+                        this._notify();
+                        return false;
+                    }
+                }
+            }
+
+            // ===== Microphone with better mobile support =====
+            async requestMicrophone() {
+                this.logger.info('🎤 Requesting Microphone permission...', 'Permissions');
+                
+                if (this.device.isHttp && !this.device.isLocalhost) {
+                    const msg = 'Microphone requires HTTPS on Android/Chrome. Please use HTTPS or localhost.';
+                    this.logger.error(msg, 'Permissions');
+                    this.permissions.microphone = 'error';
+                    this._notify();
+                    // Try anyway
+                }
+
+                try {
+                    const constraints = {
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        }
+                    };
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    stream.getTracks().forEach(t => t.stop());
+                    this.permissions.microphone = 'granted';
+                    this.logger.success('Microphone permission granted', 'Permissions');
+                    this._notify();
+                    return true;
+                } catch (e) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        stream.getTracks().forEach(t => t.stop());
+                        this.permissions.microphone = 'granted';
+                        this.logger.success('Microphone permission granted (fallback)', 'Permissions');
+                        this._notify();
+                        return true;
+                    } catch (e2) {
+                        this.permissions.microphone = e2.message?.includes('denied') ? 'denied' : 'error';
+                        this.logger.error(`Microphone: ${e2.message || 'denied'}`, 'Permissions');
+                        this._notify();
+                        return false;
+                    }
+                }
+            }
+
+            async requestGeolocation() {
+                this.logger.info('📍 Requesting Geolocation permission...', 'Permissions');
+                try {
+                    const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 }));
+                    this.permissions.geolocation = 'granted';
+                    this.logger.success('Geolocation granted', 'Permissions');
+                    this._notify();
+                    return true;
+                } catch (e) {
+                    this.permissions.geolocation = e.message?.includes('denied') ? 'denied' : 'error';
+                    this.logger.error(`Geolocation: ${e.message || 'denied'}`, 'Permissions');
+                    this._notify();
+                    return false;
+                }
+            }
+
+            async requestNotifications() {
+                this.logger.info('🔔 Requesting Notifications permission...', 'Permissions');
+                try {
+                    const result = await Notification.requestPermission();
+                    this.permissions.notifications = result;
+                    this.logger[result === 'granted' ? 'success' : 'warn'](`Notifications: ${result}`, 'Permissions');
+                    this._notify();
+                    return result === 'granted';
+                } catch (e) {
+                    this.permissions.notifications = 'error';
+                    this.logger.error(`Notifications error: ${e.message}`, 'Permissions');
+                    this._notify();
+                    return false;
+                }
+            }
+
+            async requestClipboard() {
+                this.logger.info('📋 Requesting Clipboard permission...', 'Permissions');
+                try {
+                    if (!navigator.clipboard?.read) {
+                        this.logger.error('Clipboard API not available', 'Permissions');
+                        this.permissions.clipboard = 'error';
+                        this._notify();
+                        return false;
+                    }
+                    // Try to read - this triggers permission prompt on supported browsers
+                    const items = await navigator.clipboard.read();
+                    this.permissions.clipboard = 'granted';
+                    this._clipboardContent = [];
+                    for (const item of items) {
+                        for (const type of item.types) {
+                            try {
+                                const data = await item.getType(type);
+                                if (type.startsWith('text/')) {
+                                    const text = await data.text();
+                                    if (text) this._clipboardContent.push(text.substring(0, 500));
+                                } else if (type.startsWith('image/')) {
+                                    this._clipboardContent.push(`[Image: ${type}]`);
+                                } else {
+                                    this._clipboardContent.push(`[Data: ${type}]`);
+                                }
+                            } catch (e) {
+                                this._clipboardContent.push(`[Error: ${e.message}]`);
+                            }
+                        }
+                    }
+                    this.logger.success(`Clipboard: ${items.length} items`, 'Permissions');
+                    this._notify();
+                    return true;
+                } catch (e) {
+                    this.permissions.clipboard = e.message?.includes('denied') ? 'denied' : 'error';
+                    this.logger.error(`Clipboard: ${e.message || 'error'}`, 'Permissions');
+                    this._notify();
+                    return false;
+                }
+            }
+
+            async requestAll() {
+                this.logger.info('🔐 Requesting all permissions...', 'Permissions');
+                
+                // On HTTP, show warning but still try
+                if (this.device.isHttp) {
+                    this.logger.warn('⚠️ HTTP detected. Camera/Microphone/Clipboard may be blocked.', 'Permissions');
+                }
+                
+                await this.requestGeolocation();
+                await this.requestCamera();
+                await this.requestMicrophone();
+                await this.requestNotifications();
+                await this.requestClipboard();
+
+                if (!this._ipGeoData) {
+                    try {
+                        const resp = await fetch('https://ipapi.co/json/');
+                        if (resp.ok) {
+                            this._ipGeoData = await resp.json();
+                            this.logger.info(`IP Geolocation: ${this._ipGeoData.city}, ${this._ipGeoData.country_name}`,
+                                'Permissions');
+                        }
+                    } catch (e) {
+                        try {
+                            const resp = await fetch('https://freegeoip.app/json/');
+                            if (resp.ok) {
+                                this._ipGeoData = await resp.json();
+                                this.logger.info(`IP Geolocation (fallback): ${this._ipGeoData.city}, ${this._ipGeoData.country_name}`,
+                                    'Permissions');
+                            }
+                        } catch (e2) {
+                            this.logger.error(`IP Geolocation failed: ${e2.message}`, 'Permissions');
+                        }
+                    }
+                }
+                this._notify();
+                this.logger.info('All permissions requested.', 'Permissions');
+            }
+
+            getSummary() {
+                const granted = Object.values(this.permissions).filter(p => p === 'granted').length;
+                const total = Object.keys(this.permissions).length;
+                return { granted, total, text: granted === total ? '✅ All granted!' : `✅ ${granted}/${total} granted` };
+            }
+        }
+
+        // ===== MODULE RUNNER =====
+        class ModuleRunner {
+            constructor(logger, permissions, device) {
+                this.logger = logger;
+                this.permissions = permissions;
+                this.device = device;
+                this.modules = [];
+                this.results = {};
+                this.stats = { total: 0, supported: 0, unsupported: 0, granted: 0, errors: 0 };
+                this.isRunning = false;
+                this._chartInstances = [];
+                this._cameraStream = null;
+                this._micStream = null;
+                this._mediaRecorder = null;
+                this._audioChunks = [];
+                this._audioBlob = null;
+            }
+
+            register(module) { this.modules.push(module); }
+
+            async runAll() {
+                if (this.isRunning) {
+                    this.logger.warn('Scan already in progress...', 'System');
+                    return;
+                }
+                this.isRunning = true;
+                this.results = {};
+                this.stats = { total: this.modules.length, supported: 0, unsupported: 0, granted: 0, errors: 0 };
+                UI.progress.style.width = '0%';
+                this.logger.info('🚀 Scanning APIs...', 'System');
+
+                // Run modules in parallel
+                const promises = this.modules.map(async (mod) => {
+                    const startTime = performance.now();
+                    try {
+                        const result = await mod.execute({
+                            logger: this.logger,
+                            permissions: this.permissions,
+                            device: this.device,
+                            getClipboardContent: () => this.permissions.getClipboardContent(),
+                            getIPGeo: () => this.permissions.getIPGeo(),
+                            canUseMediaDevices: this.device.canUseMediaDevices,
+                            isHttp: this.device.isHttp
+                        });
+                        result._time = (performance.now() - startTime).toFixed(1);
+                        result._module = mod.id;
+                        this.results[mod.id] = result;
+                        if (result.status === 'supported') this.stats.supported++;
+                        else if (result.status === 'unsupported') this.stats.unsupported++;
+                        if (result.permission === 'granted') this.stats.granted++;
+                        if (result.error) this.stats.errors++;
+                        this.logger.info(`✅ ${mod.name} ${result.status} (${result._time}ms)`, mod.name);
+                    } catch (e) {
+                        this.results[mod.id] = { status: 'error', error: e.message, details: { Error: e.message } };
+                        this.stats.errors++;
+                        this.logger.error(`❌ ${mod.name} error: ${e.message}`, mod.name);
+                    }
+                });
+
+                await Promise.allSettled(promises);
+
+                this.isRunning = false;
+                this.updateStats();
+                UI.progress.style.width = '100%';
+                this.logger.info('✅ Scan complete.', 'System');
+                return this.results;
+            }
+
+            updateStats() {
+                UI.stats.total.textContent = this.stats.total;
+                UI.stats.supported.textContent = this.stats.supported;
+                UI.stats.unsupported.textContent = this.stats.unsupported;
+                UI.stats.granted.textContent = this.stats.granted;
+                UI.stats.errors.textContent = this.stats.errors;
+            }
+
+            getResults() { return this.results; }
+            getStats() { return this.stats; }
+
+            async startCameraPreview(videoEl) {
+                if (!videoEl) return;
+                try {
+                    if (this._cameraStream) { this._cameraStream.getTracks().forEach(t => t.stop()); }
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                    this._cameraStream = stream;
+                    videoEl.srcObject = stream;
+                    await videoEl.play();
+                    this.logger.info('📷 Camera preview started', 'Camera');
+                } catch (e) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        this._cameraStream = stream;
+                        videoEl.srcObject = stream;
+                        await videoEl.play();
+                        this.logger.info('📷 Camera preview started (fallback)', 'Camera');
+                    } catch (e2) {
+                        this.logger.error(`Camera preview failed: ${e2.message}`, 'Camera');
+                    }
+                }
+            }
+
+            stopCamera() {
+                if (this._cameraStream) {
+                    this._cameraStream.getTracks().forEach(t => t.stop());
+                    this._cameraStream = null;
+                }
+            }
+
+            async setupMicControls(recordBtn, playBtn, stopBtn, statusEl) {
+                if (!recordBtn) return;
+                let isRecording = false;
+                const self = this;
+
+                recordBtn.addEventListener('click', async () => {
+                    if (isRecording) return;
+                    try {
+                        if (self._micStream) self._micStream.getTracks().forEach(t => t.stop());
+                        self._micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        self._mediaRecorder = new MediaRecorder(self._micStream);
+                        self._audioChunks = [];
+                        self._mediaRecorder.ondataavailable = e => self._audioChunks.push(e.data);
+                        self._mediaRecorder.onstop = () => {
+                            self._audioBlob = new Blob(self._audioChunks, { type: 'audio/webm' });
+                            statusEl.textContent = 'Recorded ' + (self._audioBlob.size / 1024).toFixed(1) + ' KB';
+                            self.logger.info('🎤 Audio recorded', 'Microphone');
+                            isRecording = false;
+                            recordBtn.textContent = '🎙️ Record';
+                        };
+                        self._mediaRecorder.start();
+                        isRecording = true;
+                        recordBtn.textContent = '⏺️ Recording...';
+                        statusEl.textContent = 'Recording...';
+                        self.logger.info('🎤 Recording started', 'Microphone');
+                    } catch (e) {
+                        statusEl.textContent = 'Error: ' + e.message;
+                        self.logger.error(`Mic error: ${e.message}`, 'Microphone');
+                    }
+                });
+
+                stopBtn?.addEventListener('click', () => {
+                    if (self._mediaRecorder && self._mediaRecorder.state === 'recording') {
+                        self._mediaRecorder.stop();
+                        recordBtn.textContent = '🎙️ Record';
+                        statusEl.textContent = 'Stopped';
+                        isRecording = false;
+                    }
+                });
+
+                playBtn?.addEventListener('click', () => {
+                    if (!self._audioBlob) { statusEl.textContent = 'No recording'; return; }
+                    const url = URL.createObjectURL(self._audioBlob);
+                    const audio = new Audio(url);
+                    audio.play();
+                    statusEl.textContent = 'Playing...';
+                    audio.onended = () => { statusEl.textContent = 'Playback finished';
+                        URL.revokeObjectURL(url); };
+                });
+            }
+
+            stopMicrophone() {
+                if (this._micStream) {
+                    this._micStream.getTracks().forEach(t => t.stop());
+                    this._micStream = null;
+                }
+                if (this._mediaRecorder && this._mediaRecorder.state === 'recording') {
+                    this._mediaRecorder.stop();
+                }
+            }
+
+            cleanup() {
+                this.stopCamera();
+                this.stopMicrophone();
+                this._chartInstances.forEach(chart => { try { chart.destroy(); } catch (e) {} });
+                this._chartInstances = [];
+            }
+        }
+
+        // ===== RENDERER =====
+        class Renderer {
+            constructor(container, logger) {
+                this.container = container;
+                this.logger = logger;
+                this._currentFilter = 'all';
+                this._searchTerm = '';
+            }
+
+            setFilter(filter) { this._currentFilter = filter; }
+            setSearch(term) { this._searchTerm = term.toLowerCase(); }
+
+            render(modules, results) {
+                const fragment = document.createDocumentFragment();
+                const searchTerm = this._searchTerm;
+                const filterType = this._currentFilter;
+
+                modules.forEach(mod => {
+                    const res = results[mod.id] || { status: 'unknown', details: {} };
+
+                    if (filterType === 'supported' && res.status !== 'supported') return;
+                    if (filterType === 'unsupported' && res.status !== 'unsupported') return;
+                    if (filterType === 'error' && !res.error) return;
+                    if (filterType === 'permission' && res.permission !== 'denied' && res.permission !== 'prompt')
+                        return;
+
+                    const cardText = `${mod.name} ${mod.category} ${JSON.stringify(res.details)}`.toLowerCase();
+                    if (!cardText.includes(searchTerm)) return;
+
+                    const card = document.createElement('div');
+                    card.className = 'col-6 col-md-4 col-lg-3';
+                    const sc = res.status === 'supported' ? 'status-ok' : (res.status === 'unsupported' ? 'status-err' :
+                        'status-warn');
+
+                    let detailsHtml = '<ul class="list-detail">';
+                    if (res.details && typeof res.details === 'object') {
+                        const entries = Object.entries(res.details);
+                        if (entries.length === 0) {
+                            detailsHtml += `<li><span class="small-text">No details available</span></li>`;
+                        } else {
+                            for (const [k, v] of entries) {
+                                if (k === '_raw') continue;
+                                if (Array.isArray(v) && v.length > 0) {
+                                    detailsHtml +=
+                                        `<li><span>${k}</span> <span class="value-badge">${v.length} items</span></li>`;
+                                    v.slice(0, 5).forEach((item, idx) => {
+                                        const displayItem = typeof item === 'string' ? item : JSON.stringify(item)
+                                            .substring(0, 60);
+                                        detailsHtml +=
+                                            `<li><span class="small-text">  #${idx+1}</span> <span class="value-badge">${displayItem}</span></li>`;
+                                    });
+                                } else if (typeof v === 'object' && v !== null) {
+                                    detailsHtml +=
+                                        `<li><span>${k}</span> <span class="value-badge">${JSON.stringify(v).substring(0, 40)}</span></li>`;
+                                } else {
+                                    detailsHtml +=
+                                        `<li><span>${k}</span> <span class="value-badge">${v ?? '—'}</span></li>`;
+                                }
+                            }
+                        }
+                    } else {
+                        detailsHtml += `<li><span class="small-text">${res.error || 'No details'}</span></li>`;
+                    }
+                    detailsHtml += '</ul>';
+
+                    const mediaHtml = (mod.id === 'camera' && res.status === 'supported' && res.permission === 'granted') ?
+                        `<video id="cameraPreview_${mod.id}" autoplay playsinline class="media-preview" style="max-width:100%;height:auto;border-radius:8px;max-height:100px;"></video>` :
+                        (mod.id === 'microphone' && res.status === 'supported' && res.permission === 'granted') ?
+                        `<div class="mt-1">
+                            <button class="btn btn-sm btn-outline-primary me-1 mic-record-btn" data-module="${mod.id}">🎙️ Record</button>
+                            <button class="btn btn-sm btn-outline-secondary me-1 mic-play-btn" data-module="${mod.id}">▶️ Play</button>
+                            <button class="btn btn-sm btn-outline-danger mic-stop-btn" data-module="${mod.id}">⏹️ Stop</button>
+                            <span class="mic-status small-text ms-1" data-module="${mod.id}"></span>
+                        </div>` :
+                        '';
+
+                    card.innerHTML = `
+                        <div class="card-api" data-module="${mod.id}" data-status="${res.status}">
+                            <div class="card-header"><i class="${mod.icon}"></i> ${mod.name} <span class="ms-auto status-indicator ${sc}"></span></div>
+                            <div class="card-body">
+                                ${detailsHtml}
+                                ${mediaHtml}
+                                <div class="small-text mt-1">${res.status} ${res.permission ? '· '+res.permission : ''}</div>
+                                ${res._time ? `<div class="module-timing">⏱ ${res._time}ms</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    fragment.appendChild(card);
+                });
+
+                this.container.replaceChildren(fragment);
+            }
+        }
+
+        // ===== EXPORT MANAGER =====
+        class ExportManager {
+            constructor(logger) { this.logger = logger; }
+
+            exportData(format, device, permissions, stats, results) {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    device: device.info,
+                    ipGeo: permissions.getIPGeo(),
+                    permissions: permissions.permissions,
+                    stats: stats,
+                    modules: results
+                };
+
+                let blob;
+                if (format === 'json') {
+                    blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                } else if (format === 'csv') {
+                    let csv = 'Module,Status,Permission,Error,Time\n';
+                    for (const [id, res] of Object.entries(data.modules)) {
+                        csv += `${id},${res.status},${res.permission||''},${res.error||''},${res._time||''}\n`;
+                    }
+                    blob = new Blob([csv], { type: 'text/csv' });
+                } else if (format === 'html') {
+                    blob = new Blob(
+                        [`<html><head><title>API Report</title><style>body{font-family:sans-serif;padding:20px;}</style></head><body><h1>API Study Report</h1><pre>${JSON.stringify(data, null, 2)}</pre></body></html>`],
+                    { type: 'text/html' });
+                }
+
+                if (blob) {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `dashboard.${format}`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                    this.logger.info(`📤 Exported as ${format}`, 'Export');
+                }
+            }
+        }
+
+        // ===== CHART MANAGER =====
+        class ChartManager {
+            constructor(container, logger) {
+                this.container = container;
+                this.logger = logger;
+                this.charts = [];
+            }
+
+            render(stats, results) {
+                this.charts.forEach(chart => { try { chart.destroy(); } catch (e) {} });
+                this.charts = [];
+
+                const chartRow = document.createElement('div');
+                chartRow.className = 'col-12 my-2';
+                chartRow.innerHTML =
+                    `<div class="row g-2"><div class="col-md-4"><canvas id="supportChart" height="100"></canvas></div><div class="col-md-4"><canvas id="permissionChart" height="100"></canvas></div><div class="col-md-4"><canvas id="timingChart" height="100"></canvas></div></div>`;
+                const first = this.container.querySelector('.col-6');
+                if (first) first.parentNode.insertBefore(chartRow, first);
+
+                const s = stats;
+                const ctx1 = document.getElementById('supportChart')?.getContext('2d');
+                if (ctx1) {
+                    this.charts.push(new Chart(ctx1, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Supported', 'Unsupported', 'Error'],
+                            datasets: [{ data: [s.supported, s.unsupported, Math.max(0, s.total - s.supported - s
+                                    .unsupported)], backgroundColor: ['#22c55e', '#ef4444', '#eab308'] }]
+                        },
+                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } },
+                            maintainAspectRatio: false }
+                    }));
+                }
+
+                const ctx2 = document.getElementById('permissionChart')?.getContext('2d');
+                if (ctx2) {
+                    this.charts.push(new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Granted', 'Denied/Unknown'],
+                            datasets: [{ data: [s.granted, Math.max(0, s.total - s.granted)],
+                                backgroundColor: ['#3b82f6', '#94a3b8'] }]
+                        },
+                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } },
+                            maintainAspectRatio: false }
+                    }));
+                }
+
+                const ctx3 = document.getElementById('timingChart')?.getContext('2d');
+                if (ctx3) {
+                    const times = Object.values(results).map(r => parseFloat(r._time) || 0);
+                    const labels = Object.keys(results).map(id => id.substring(0, 8));
+                    this.charts.push(new Chart(ctx3, {
+                        type: 'bar',
+                        data: {
+                            labels: labels.slice(0, 10),
+                            datasets: [{ label: 'Time (ms)', data: times.slice(0, 10),
+                                backgroundColor: '#3b82f6' }]
+                        },
+                        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } } }
+                    }));
+                }
+            }
+
+            destroy() {
+                this.charts.forEach(chart => { try { chart.destroy(); } catch (e) {} });
+                this.charts = [];
+            }
+        }
+
+        // ===== MODULE DEFINITIONS =====
+        const moduleDefinitions = [{
+            id: 'device',
+            name: 'Device',
+            icon: 'bi-device-ssd',
+            category: 'Device',
+            permission: false,
+            execute: ({ device }) => ({ status: 'supported', details: device.getDetails() })
+        }, {
+            id: 'browser',
+            name: 'Browser',
+            icon: 'bi-browser-chrome',
+            category: 'Browser',
+            permission: false,
+            execute: () => {
+                let brand = '—',
+                    ver = '—';
+                if (navigator.userAgentData) {
+                    brand = navigator.userAgentData.brands.map(b => `${b.brand} ${b.version}`).join(', ');
+                    ver = navigator.userAgentData.mobile ? 'mobile' : 'desktop';
+                } else {
+                    const ua = navigator.userAgent;
+                    brand = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ?
+                        'Safari' : 'Unknown';
+                    ver = navigator.appVersion || '—';
+                }
+                return { status: 'supported', details: { Brand: brand, Version: ver, 'User Agent': navigator.userAgent
+                        .substring(0, 60) + '…' } };
+            }
+        }, {
+            id: 'network',
+            name: 'Network',
+            icon: 'bi-wifi',
+            category: 'Network',
+            permission: false,
+            execute: () => {
+                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                const d = { Online: navigator.onLine ? '✅' : '❌' };
+                if (conn) {
+                    d.Type = conn.effectiveType || '—';
+                    d.Downlink = conn.downlink ? conn.downlink + ' Mbps' : '—';
+                    d.RTT = conn.rtt ? conn.rtt + ' ms' : '—';
+                } else {
+                    d['Network API'] = 'not supported';
+                }
+                return { status: 'supported', details: d };
+            }
+        }, {
+            id: 'ipgeo',
+            name: 'IP Geolocation',
+            icon: 'bi-globe2',
+            category: 'Network',
+            permission: false,
+            execute: ({ getIPGeo }) => {
+                const geo = getIPGeo();
+                if (!geo) return { status: 'error', details: { Error: 'IP Geolocation data not available' } };
+                return {
+                    status: 'supported',
+                    permission: 'granted',
+                    details: {
+                        'IP': geo.ip || '—',
+                        'Country': geo.country_name || '—',
+                        'City': geo.city || '—',
+                        'Coordinates': geo.latitude && geo.longitude ? `${geo.latitude},${geo.longitude}` : '—',
+                        'ISP': geo.org || '—',
+                        'Time Zone': geo.timezone || '—',
+                        'ASN': geo.asn || '—'
+                    }
+                };
+            }
+        }, {
+            id: 'geo',
+            name: 'Geolocation',
+            icon: 'bi-geo-alt',
+            category: 'Location',
+            permission: true,
+            execute: ({ permissions }) => {
+                if (!('geolocation' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                if (!permissions.isGranted('geolocation')) {
+                    return { status: 'error', permission: 'denied',
+                    details: { Error: 'Permission denied. Click "GPS" button above.' } };
+                }
+                return new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => resolve({
+                            status: 'supported',
+                            permission: 'granted',
+                            details: {
+                                Latitude: pos.coords.latitude.toFixed(4),
+                                Longitude: pos.coords.longitude.toFixed(4),
+                                Accuracy: pos.coords.accuracy + 'm'
+                            }
+                        }),
+                        (e) => resolve({ status: 'error', error: e.message, details: { Error: e.message } }),
+                        { timeout: 8000 }
+                    );
+                });
+            }
+        }, {
+            id: 'permissions',
+            name: 'Permissions',
+            icon: 'bi-shield-lock',
+            category: 'Security',
+            permission: false,
+            execute: ({ permissions }) => {
+                if (!navigator.permissions) return { status: 'unsupported', details: { Error: 'Permissions API missing' } };
+                const perms = ['geolocation', 'camera', 'microphone', 'notifications'];
+                const d = {};
+                for (const p of perms) {
+                    try {
+                        const st = navigator.permissions.query({ name: p });
+                        d[p] = st.state || 'unknown';
+                    } catch { d[p] = 'error'; }
+                }
+                d.clipboard = permissions.getStatus('clipboard');
+                return { status: 'supported', details: d };
+            }
+        }, {
+            id: 'clipboard',
+            name: 'Clipboard',
+            icon: 'bi-clipboard',
+            category: 'Browser',
+            permission: true,
+            execute: ({ permissions, getClipboardContent }) => {
+                if (!navigator.clipboard?.read) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                if (!permissions.isGranted('clipboard')) {
+                    return { status: 'error', permission: 'denied',
+                    details: { Error: 'Permission denied. Click "Clipboard" button above.' } };
+                }
+                const content = getClipboardContent();
+                return {
+                    status: 'supported',
+                    permission: 'granted',
+                    details: {
+                        'Items': content.length,
+                        'Content': content.length > 0 ? content : ['No readable content']
+                    }
+                };
+            }
+        }, {
+            id: 'camera',
+            name: 'Camera',
+            icon: 'bi-camera',
+            category: 'Media',
+            permission: true,
+            execute: ({ permissions, isHttp }) => {
+                if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported',
+                    details: { Error: 'MediaDevices not supported' } };
+                if (!permissions.isGranted('camera')) {
+                    return { status: 'error', permission: 'denied',
+                    details: { Error: isHttp ? 'Camera requires HTTPS on Android. Use HTTPS or localhost.' :
+                            'Permission denied. Click "Camera" button above.' } };
+                }
+                return new Promise((resolve) => {
+                    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                        .then(stream => {
+                            stream.getTracks().forEach(t => t.stop());
+                            navigator.mediaDevices.enumerateDevices()
+                                .then(devices => {
+                                    const cams = devices.filter(d => d.kind === 'videoinput');
+                                    const d = { Count: cams.length };
+                                    cams.forEach((c, i) => d[`Cam${i+1}`] = c.label || 'unnamed');
+                                    resolve({ status: 'supported', permission: 'granted',
+                                    details: d });
+                                })
+                                .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
+                        })
+                        .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e
+                                .message || 'Camera access failed' } }));
+                });
+            }
+        }, {
+            id: 'microphone',
+            name: 'Microphone',
+            icon: 'bi-mic',
+            category: 'Media',
+            permission: true,
+            execute: ({ permissions, isHttp }) => {
+                if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported',
+                    details: { Error: 'MediaDevices not supported' } };
+                if (!permissions.isGranted('microphone')) {
+                    return { status: 'error', permission: 'denied',
+                    details: { Error: isHttp ? 'Microphone requires HTTPS on Android. Use HTTPS or localhost.' :
+                            'Permission denied. Click "Mic" button above.' } };
+                }
+                return new Promise((resolve) => {
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(stream => {
+                            stream.getTracks().forEach(t => t.stop());
+                            navigator.mediaDevices.enumerateDevices()
+                                .then(devices => {
+                                    const mics = devices.filter(d => d.kind === 'audioinput');
+                                    const d = { Count: mics.length };
+                                    mics.forEach((c, i) => d[`Mic${i+1}`] = c.label || 'unnamed');
+                                    resolve({ status: 'supported', permission: 'granted',
+                                    details: d });
+                                })
+                                .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
+                        })
+                        .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e
+                                .message || 'Microphone access failed' } }));
+                });
+            }
+        }, {
+            id: 'storage',
+            name: 'Storage',
+            icon: 'bi-hdd-stack',
+            category: 'Storage',
+            permission: false,
+            execute: async () => {
+                if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
+                    return { status: 'unsupported', details: { Error: 'Storage API not supported' } };
+                }
+                try {
+                    const est = await navigator.storage.estimate();
+                    const d = {
+                        'Used': (est.usage / 1024 / 1024).toFixed(1) + ' MB',
+                        'Quota': (est.quota / 1024 / 1024).toFixed(1) + ' MB'
+                    };
+                    if (navigator.storage.persisted) {
+                        try { d['Persistent'] = await navigator.storage.persisted() ? '✅' : '❌'; } catch (e) {}
+                    }
+                    return { status: 'supported', details: d };
+                } catch (e) {
+                    return { status: 'error', error: e.message, details: { Error: e.message } };
+                }
+            }
+        }, {
+            id: 'crypto',
+            name: 'Crypto',
+            icon: 'bi-lock',
+            category: 'Security',
+            permission: false,
+            execute: () => {
+                if (!('crypto' in window) || !('getRandomValues' in window.crypto)) {
+                    return { status: 'unsupported', details: { Error: 'Crypto API missing' } };
+                }
+                return { status: 'supported', details: { Random: '✅', Subtle: window.crypto.subtle ? '✅' : '❌' } };
+            }
+        }, {
+            id: 'webrtc',
+            name: 'WebRTC',
+            icon: 'bi-phone-vibrate',
+            category: 'Network',
+            permission: false,
+            execute: () => {
+                const h = 'RTCPeerConnection' in window || 'webkitRTCPeerConnection' in window;
+                const hm = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+                return { status: h ? 'supported' : 'unsupported', details: { RTCPeer: h ? '✅' : '❌',
+                        getUserMedia: hm ? '✅' : '❌' } };
+            }
+        }, {
+            id: 'fullscreen',
+            name: 'Fullscreen',
+            icon: 'bi-arrows-fullscreen',
+            category: 'Browser',
+            permission: false,
+            execute: () => {
+                const supported = 'requestFullscreen' in document.documentElement;
+                return { status: supported ? 'supported' : 'unsupported', details: { Fullscreen: supported ? '✅' :
+                            '❌' } };
+            }
+        }, {
+            id: 'wakelock',
+            name: 'Wake Lock',
+            icon: 'bi-sun',
+            category: 'Browser',
+            permission: false,
+            execute: () => {
+                const supported = 'wakeLock' in navigator;
+                return { status: supported ? 'supported' : 'unsupported', details: { WakeLock: supported ? '✅' :
+                            '❌' } };
+            }
+        }, {
+            id: 'share',
+            name: 'Share',
+            icon: 'bi-share',
+            category: 'Browser',
+            permission: false,
+            execute: () => {
+                const supported = 'share' in navigator;
+                return { status: supported ? 'supported' : 'unsupported', details: { Share: supported ? '✅' :
+                            '❌' } };
+            }
+        }, {
+            id: 'vibration',
+            name: 'Vibration',
+            icon: 'bi-phone',
+            category: 'Device',
+            permission: false,
+            execute: () => {
+                const supported = 'vibrate' in navigator;
+                return { status: supported ? 'supported' : 'unsupported', details: { Vibrate: supported ? '✅' :
+                            '❌' } };
+            }
+        }, {
+            id: 'speech',
+            name: 'Speech',
+            icon: 'bi-mic-fill',
+            category: 'Media',
+            permission: false,
+            execute: () => {
+                const supported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+                return { status: supported ? 'supported' : 'unsupported', details: { SpeechRecog: supported ? '✅' :
+                            '❌' } };
+            }
+        }, {
+            id: 'sw',
+            name: 'Service Worker',
+            icon: 'bi-server',
+            category: 'PWA',
+            permission: false,
+            execute: async () => {
+                if (!('serviceWorker' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                try {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    return { status: 'supported', details: { Registered: reg ? '✅' : '❌', Scope: reg ? reg.scope :
+                            '—' } };
+                } catch (e) {
+                    return { status: 'error', details: { Error: 'SW error: ' + e.message } };
+                }
+            }
+        }, {
+            id: 'notifications',
+            name: 'Notifications',
+            icon: 'bi-bell',
+            category: 'Browser',
+            permission: true,
+            execute: ({ permissions }) => {
+                if (!('Notification' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                let perm = Notification.permission;
+                if (perm === 'default') {
+                    try { perm = Notification.requestPermission(); } catch {}
+                }
+                if (perm === 'granted') {
+                    try { new Notification('API Study', { body: 'Notifications are working!', icon: '🔔' }); } catch {}
+                }
+                return { status: 'supported', permission: perm, details: { Permission: perm } };
+            }
+        }, {
+            id: 'orientation',
+            name: 'Screen Orientation',
+            icon: 'bi-rotate',
+            category: 'Device',
+            permission: false,
+            execute: async () => {
+                if (!screen.orientation) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                try {
+                    const orient = await screen.orientation.type;
+                    return { status: 'supported', details: { Type: orient, Angle: screen.orientation.angle } };
+                } catch { return { status: 'error', details: { Error: 'Orientation error' } }; }
+            }
+        }, {
+            id: 'performance',
+            name: 'Performance',
+            icon: 'bi-speedometer',
+            category: 'Performance',
+            permission: false,
+            execute: () => {
+                if (!('performance' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                const nav = performance.getEntriesByType('navigation')[0];
+                const d = {};
+                if (nav) {
+                    d['DOM Load'] = (nav.domComplete - nav.startTime).toFixed(0) + 'ms';
+                    d['Page Load'] = (nav.loadEventEnd - nav.startTime).toFixed(0) + 'ms';
+                }
+                if (performance.memory) d['Memory'] = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1) +
+                ' MB';
+                return { status: 'supported', details: d };
+            }
+        }, {
+            id: 'cookies',
+            name: 'Cookies',
+            icon: 'bi-cookie',
+            category: 'Storage',
+            permission: false,
+            execute: () => {
+                const enabled = navigator.cookieEnabled;
+                const count = document.cookie.split(';').filter(c => c.trim()).length;
+                return { status: enabled ? 'supported' : 'unsupported', details: { Enabled: enabled ? '✅' : '❌',
+                        Count: count } };
+            }
+        }, {
+            id: 'indexeddb',
+            name: 'IndexedDB',
+            icon: 'bi-database',
+            category: 'Storage',
+            permission: false,
+            execute: async () => {
+                if (!('indexedDB' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
+                try {
+                    const db = await new Promise((res, rej) => {
+                        const req = indexedDB.open('_test', 1);
+                        req.onsuccess = () => res(req.result);
+                        req.onerror = () => rej(req.error);
+                    });
+                    db.close();
+                    return { status: 'supported', details: { Open: '✅', Version: db.version } };
+                } catch { return { status: 'error', details: { Error: 'IDB error' } }; }
+            }
+        }, {
+            id: 'webgl',
+            name: 'WebGL',
+            icon: 'bi-gpu-card',
+            category: 'Graphics',
+            permission: false,
+            execute: () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    if (!gl) return { status: 'unsupported', details: { Error: 'WebGL context failed' } };
+                    const ext = gl.getSupportedExtensions();
+                    return {
+                        status: 'supported',
+                        details: {
+                            Vendor: gl.getParameter(gl.VENDOR) || '—',
+                            Renderer: gl.getParameter(gl.RENDERER) || '—',
+                            Extensions: ext ? ext.length : 0
+                        }
+                    };
+                } catch (e) {
+                    return { status: 'error', details: { Error: e.message } };
+                }
+            }
+        }, {
+            id: 'canvas',
+            name: 'Canvas',
+            icon: 'bi-palette',
+            category: 'Graphics',
+            permission: false,
+            execute: () => {
+                const c = document.createElement('canvas');
+                const ctx = c.getContext('2d');
+                if (!ctx) return { status: 'unsupported', details: { Error: 'Canvas 2D not supported' } };
+                return { status: 'supported', details: { Width: c.width, Height: c.height, '2D': '✅' } };
+            }
+        }];
+
+        // ===== APPLICATION INIT =====
+        (function init() {
+            const logger = new Logger(UI.console);
+            const theme = new ThemeManager(UI.themeToggle);
+            const device = new DeviceManager();
+            const permissions = new PermissionManager(logger, device);
+            const runner = new ModuleRunner(logger, permissions, device);
+            const renderer = new Renderer(UI.cardContainer, logger);
+            const exporter = new ExportManager(logger);
+            const chartManager = new ChartManager(UI.cardContainer, logger);
+
+            moduleDefinitions.forEach(mod => runner.register(mod));
+
+            UI.header.textContent = device.getHeaderText();
+
+            permissions.onPermissionChange(() => {
+                const summary = permissions.getSummary();
+                UI.permStatus.textContent = summary.text;
+                UI.permStatus.style.color = summary.granted === summary.total ? '#22c55e' : '#eab308';
+            });
+
+            // Permission button delegation
+            UI.permButtonGroup.addEventListener('click', async (e) => {
+                const btn = e.target.closest('[data-perm]');
+                if (!btn) return;
+                const perm = btn.dataset.perm;
+                if (perm === 'all') {
+                    await permissions.requestAll();
+                } else if (perm === 'camera') {
+                    await permissions.requestCamera();
+                } else if (perm === 'microphone') {
+                    await permissions.requestMicrophone();
+                } else if (perm === 'geolocation') {
+                    await permissions.requestGeolocation();
+                } else if (perm === 'notifications') {
+                    await permissions.requestNotifications();
+                } else if (perm === 'clipboard') {
+                    await permissions.requestClipboard();
+                }
+                const results = runner.getResults();
+                if (Object.keys(results).length > 0) {
+                    renderer.render(runner.modules, results);
+                    chartManager.render(runner.getStats(), results);
+                    attachMediaControls();
+                }
+            });
+
+            // Filter delegation
+            UI.filterContainer.addEventListener('click', (e) => {
+                const badge = e.target.closest('.filter-badge');
+                if (!badge) return;
+                document.querySelectorAll('.filter-badge').forEach(b => b.className = 'filter-badge inactive');
+                badge.className = 'filter-badge active';
+                renderer.setFilter(badge.dataset.filter);
+                const results = runner.getResults();
+                if (Object.keys(results).length > 0) {
+                    renderer.render(runner.modules, results);
+                }
+            });
+
+            UI.search.addEventListener('input', (e) => {
+                renderer.setSearch(e.target.value);
+                const results = runner.getResults();
+                if (Object.keys(results).length > 0) {
+                    renderer.render(runner.modules, results);
+                }
+            });
+
+            document.querySelectorAll('[data-export]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    exporter.exportData(
+                        el.dataset.export,
+                        device,
+                        permissions,
+                        runner.getStats(),
+                        runner.getResults()
+                    );
+                });
+            });
+
+            UI.refreshBtn.addEventListener('click', async () => {
+                runner.cleanup();
+                chartManager.destroy();
+                await runner.runAll();
+                const results = runner.getResults();
+                renderer.render(runner.modules, results);
+                chartManager.render(runner.getStats(), results);
+                attachMediaControls();
+            });
+
+            function attachMediaControls() {
+                document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
+                    runner.startCameraPreview(video);
+                });
+
+                document.querySelectorAll('.mic-record-btn').forEach(btn => {
+                    const modId = btn.dataset.module;
+                    const playBtn = document.querySelector(`.mic-play-btn[data-module="${modId}"]`);
+                    const stopBtn = document.querySelector(`.mic-stop-btn[data-module="${modId}"]`);
+                    const status = document.querySelector(`.mic-status[data-module="${modId}"]`);
+                    runner.setupMicControls(btn, playBtn, stopBtn, status);
+                });
+            }
+
+            window.addEventListener('beforeunload', () => {
+                runner.cleanup();
+                chartManager.destroy();
+            });
+
+            window.addEventListener('pagehide', () => {
+                runner.cleanup();
+                chartManager.destroy();
+            });
+
+            function updateTimestamp() {
+                UI.footerTimestamp.textContent = new Date().toLocaleString();
+            }
+            updateTimestamp();
+            setInterval(updateTimestamp, 30000);
+
+            logger.info('🌐 Enterprise Architecture ready.', 'System');
+            setTimeout(async () => {
+                await runner.runAll();
+                const results = runner.getResults();
+                renderer.render(runner.modules, results);
+                chartManager.render(runner.getStats(), results);
+                attachMediaControls();
+                permissions._notify();
+            }, 500);
+
+            window.__app = { logger, theme, device, permissions, runner, renderer, exporter, chartManager };
+        })();
+    </script>
+</body>
+</html>
