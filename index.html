@@ -2,1546 +2,306 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>📊 API Study · Enterprise</title>
-    <!-- Bootstrap 5 with verified SRI hashes -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-0k0Z7QghAk5k2yFgoYerVtVIFZtihJ3pUFGZKTSw0gPkKj6K5pW8nbGtPABV3nI3" crossorigin="anonymous"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PharmaField · Agent Check-In</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Leaflet CSS (Free Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root {
-            --bg-body: #f4f7fc;
-            --card-bg: rgba(255,255,255,0.85);
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --border-light: rgba(0,0,0,0.05);
-            --shadow: 0 6px 18px rgba(0,20,40,0.08);
-        }
-        [data-theme="dark"] {
-            --bg-body: #0f172a;
-            --card-bg: rgba(30,41,59,0.9);
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --border-light: rgba(255,255,255,0.08);
-            --shadow: 0 6px 18px rgba(0,0,0,0.4);
-        }
-        body { background: var(--bg-body); color: var(--text-primary); font-family: 'Segoe UI', system-ui, sans-serif; padding-bottom: 2rem; transition: background 0.2s, color 0.2s; }
-        .dashboard-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); background-size: 300% 300%; animation: gradientShift 8s ease infinite; color: white; padding: 1rem 0 0.8rem; border-radius: 0 0 2rem 2rem; box-shadow: 0 8px 20px rgba(0,0,0,0.2); margin-bottom: 1.8rem; }
-        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        .header-title { font-weight: 600; letter-spacing: 1px; }
-        .header-sub { font-size: 0.9rem; opacity: 0.85; }
-        .card-api { border: none; border-radius: 1.2rem; background: var(--card-bg); backdrop-filter: blur(2px); border: 1px solid var(--border-light); box-shadow: var(--shadow); transition: 0.15s; height: 100%; color: var(--text-primary); }
-        .card-api:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,20,40,0.12); }
-        .card-api .card-header { background: transparent; border-bottom: 1px solid var(--border-light); font-weight: 600; font-size: 0.9rem; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .card-api .card-header i { font-size: 1.2rem; width: 1.6rem; color: #1a2a6c; }
-        [data-theme="dark"] .card-api .card-header i { color: #8b9dff; }
-        .card-body { padding: 0.6rem 1rem 1rem; font-size: 0.85rem; }
-        .value-badge { background: #eef3fa; padding: 0.1rem 0.6rem; border-radius: 20px; font-size: 0.7rem; color: #1e293b; display: inline-block; word-break: break-word; }
-        [data-theme="dark"] .value-badge { background: #334155; color: #e2e8f0; }
-        .list-detail { list-style: none; padding-left: 0; margin-bottom: 0.2rem; }
-        .list-detail li { padding: 0.15rem 0; border-bottom: 1px dashed var(--border-light); display: flex; justify-content: space-between; flex-wrap: wrap; }
-        .list-detail li:last-child { border-bottom: none; }
-        .small-text { font-size: 0.7rem; color: var(--text-secondary); }
-        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-        .status-ok { background: #22c55e; } .status-warn { background: #eab308; } .status-err { background: #ef4444; }
-        .footer-note { text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 2rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; }
-        .progress-indicator { height: 4px; background: #e2e8f0; border-radius: 4px; margin: 0.3rem 0; overflow: hidden; }
-        .progress-indicator .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s; }
-        .console-log { background: #0f172a; color: #a5f3fc; border-radius: 12px; padding: 0.4rem 1rem; font-family: 'Courier New', monospace; font-size: 0.7rem; max-height: 70px; overflow-y: auto; border: 1px solid #334155; margin-top: 0.5rem; }
-        .console-log .log-entry { opacity: 0.9; border-bottom: 1px solid #1e293b; padding: 0.05rem 0; }
-        .console-log .log-entry.error { color: #f87171; }
-        .console-log .log-entry.warn { color: #fbbf24; }
-        .console-log .log-entry.success { color: #34d399; }
-        .theme-toggle { cursor: pointer; background: rgba(255,255,255,0.15); border-radius: 30px; padding: 0.2rem 0.8rem; border: 1px solid rgba(255,255,255,0.2); color: white; }
-        .theme-toggle:hover { background: rgba(255,255,255,0.25); }
-        .stat-card { background: var(--card-bg); border-radius: 1rem; padding: 0.3rem 0.6rem; text-align: center; border: 1px solid var(--border-light); }
-        .media-preview { max-width: 100%; border-radius: 12px; margin-top: 6px; background: #000; max-height: 120px; }
-        .permission-request-banner { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 0.5rem 1rem; border-radius: 12px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-        .permission-request-banner .btn { font-size: 0.7rem; padding: 0.15rem 0.6rem; }
-        .filter-badge { cursor: pointer; padding: 0.1rem 0.5rem; border-radius: 12px; font-size: 0.65rem; margin: 0.1rem; }
-        .filter-badge.active { background: #3b82f6; color: white; }
-        .filter-badge.inactive { background: #e2e8f0; color: #475569; }
-        [data-theme="dark"] .filter-badge.inactive { background: #334155; color: #94a3b8; }
-        .permission-btn-group { display: flex; gap: 4px; flex-wrap: wrap; }
-        .android-permission-hint { background: #1e293b; color: #e2e8f0; padding: 0.2rem 0.8rem; border-radius: 8px; font-size: 0.7rem; margin-bottom: 0.5rem; border-left: 4px solid #22c55e; display: none; }
-        .module-timing { font-size: 0.6rem; color: var(--text-secondary); margin-top: 0.2rem; }
-        .chart-container { width: 100%; margin-bottom: 0.5rem; }
-        .search-debounce-hint { font-size: 0.6rem; color: var(--text-secondary); opacity: 0.7; margin-left: 0.5rem; }
-        .permission-step-indicator { display: flex; gap: 4px; align-items: center; font-size: 0.65rem; padding: 0.2rem 0.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; }
-        .step-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .step-dot.active { background: #22c55e; animation: pulse 1s infinite; }
-        .step-dot.pending { background: #94a3b8; }
-        .step-dot.done { background: #22c55e; }
-        .step-dot.error { background: #ef4444; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        @media (max-width: 576px) { .dashboard-header { padding: 0.6rem 0; } .header-title { font-size: 1.1rem; } .permission-btn-group .btn { font-size: 0.6rem; padding: 0.1rem 0.4rem; } }
+        :root { --primary: #1a2a6c; --accent: #fdbb2d; --bg: #f4f7fc; }
+        body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; padding-bottom: 80px; }
+        .header { background: linear-gradient(135deg, var(--primary), #b21f1f); color: white; padding: 1.5rem 1rem; border-radius: 0 0 1.5rem 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card-field { border: none; border-radius: 1rem; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+        .card-header-custom { background: transparent; border-bottom: 1px solid #eee; font-weight: 600; padding: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary); }
+        .btn-action { width: 100%; padding: 0.8rem; font-weight: 600; border-radius: 0.8rem; margin-bottom: 0.5rem; }
+        #map { height: 200px; border-radius: 0.8rem; margin-top: 0.5rem; z-index: 1; }
+        .preview-box { background: #000; border-radius: 0.8rem; overflow: hidden; margin-top: 0.5rem; max-height: 200px; display: flex; align-items: center; justify-content: center; }
+        .preview-box img, .preview-box video { max-width: 100%; max-height: 200px; object-fit: cover; }
+        .status-badge { font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 20px; }
+        .log-console { background: #1e293b; color: #a5f3fc; font-family: monospace; font-size: 0.75rem; padding: 0.8rem; border-radius: 0.8rem; max-height: 150px; overflow-y: auto; }
+        .recording-pulse { animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
 <body>
-    <div class="container" id="app">
-        <div class="dashboard-header text-center">
-            <div class="d-flex justify-content-between align-items-center px-3">
-                <h1 class="header-title"><i class="bi bi-laptop"></i> API Study · Enterprise</h1>
-                <div class="d-flex gap-2 align-items-center">
-                    <button class="btn btn-sm btn-outline-light" id="refreshAllBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-                    <span class="theme-toggle" id="themeToggle"><i class="bi bi-moon-stars"></i></span>
-                </div>
-            </div>
-            <p class="header-sub mb-0" id="deviceHeaderInfo"><i class="bi bi-phone"></i> Detecting device...</p>
-            <div class="progress-indicator"><div class="bar" id="progressBar"></div></div>
+
+<div class="container">
+    <div class="header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0 fw-bold"><i class="bi bi-briefcase-fill"></i> PharmaField</h4>
+            <small class="opacity-75">Agent Check-In & Proof of Work</small>
         </div>
-
-        <div class="android-permission-hint" id="androidHint">
-            📱 <strong>Android Users:</strong> Click each permission button ONE AT A TIME. Chrome will ask for permission after each click.
-        </div>
-
-        <div class="permission-request-banner" id="permBanner">
-            <span><i class="bi bi-shield-lock"></i> <span id="permStatusText">Click to request permissions</span></span>
-            <div class="permission-btn-group" id="permButtonGroup">
-                <button class="btn btn-success btn-sm" data-perm="all" id="grantAllBtn">Grant All</button>
-                <button class="btn btn-warning btn-sm" data-perm="camera">📷 Camera</button>
-                <button class="btn btn-warning btn-sm" data-perm="microphone">🎤 Mic</button>
-                <button class="btn btn-warning btn-sm" data-perm="geolocation">📍 GPS</button>
-                <button class="btn btn-warning btn-sm" data-perm="notifications">🔔 Notify</button>
-                <button class="btn btn-warning btn-sm" data-perm="clipboard">📋 Clipboard</button>
-            </div>
-            <div class="permission-step-indicator" id="stepIndicator" style="display:none;">
-                <span id="stepText">Step 1/5</span>
-                <span class="step-dot pending" data-step="1"></span>
-                <span class="step-dot pending" data-step="2"></span>
-                <span class="step-dot pending" data-step="3"></span>
-                <span class="step-dot pending" data-step="4"></span>
-                <span class="step-dot pending" data-step="5"></span>
-            </div>
-        </div>
-
-        <div class="row g-2 mb-2" id="statsRow">
-            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-primary" id="totalApis">0</span> Total</div></div>
-            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-success" id="supportedApis">0</span> Supported</div></div>
-            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-danger" id="unsupportedApis">0</span> Unsupported</div></div>
-            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-warning text-dark" id="permissionGranted">0</span> Granted</div></div>
-            <div class="col-2 col-md"><div class="stat-card"><span class="badge bg-info" id="errorCount">0</span> Errors</div></div>
-        </div>
-
-        <div class="row g-2 mb-2">
-            <div class="col-md-4">
-                <input type="text" class="form-control" id="searchInput" placeholder="🔍 Search APIs...">
-                <span class="search-debounce-hint" id="searchHint">Type to filter...</span>
-            </div>
-            <div class="col-md-8 text-end" id="filterContainer">
-                <span class="filter-badge active" data-filter="all">All</span>
-                <span class="filter-badge inactive" data-filter="supported">Supported</span>
-                <span class="filter-badge inactive" data-filter="unsupported">Unsupported</span>
-                <span class="filter-badge inactive" data-filter="error">Errors</span>
-                <span class="filter-badge inactive" data-filter="permission">Needs Permission</span>
-                <button class="btn btn-sm btn-outline-secondary" data-export="json">JSON</button>
-                <button class="btn btn-sm btn-outline-secondary" data-export="csv">CSV</button>
-                <button class="btn btn-sm btn-outline-secondary" data-export="html">HTML</button>
-                <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">🖨️</button>
-            </div>
-        </div>
-
-        <div class="row g-3" id="cardContainer"></div>
-        <div id="chartContainer"></div>
-
-        <div class="console-log" id="consoleLog"><div class="log-entry">⏳ Initializing...</div></div>
-        <div class="footer-note"><i class="bi bi-arrow-repeat me-1"></i> Enterprise Architecture · <span id="footerTimestamp"></span></div>
+        <span class="badge bg-light text-dark" id="agentId">Agent: #8842</span>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <div class="mt-3">
+        <!-- Location Card -->
+        <div class="card card-field">
+            <div class="card-header-custom"><i class="bi bi-geo-alt-fill text-danger"></i> Site Verification</div>
+            <div class="card-body">
+                <div id="locationStatus" class="mb-2"><span class="status-badge bg-secondary text-white">Waiting for GPS...</span></div>
+                <div id="map"></div>
+                <button class="btn btn-primary btn-action mt-2" onclick="captureLocation()">
+                    <i class="bi bi-crosshair"></i> Capture Current Location
+                </button>
+            </div>
+        </div>
 
-    <script>
-        /* ============================================================
-           ULTIMATE ENTERPRISE ARCHITECTURE - ALL ISSUES FIXED
-           - Per-module mic state with Map
-           - Timeout wrapper for modules
-           - Step-by-step "Grant All" guided flow
-           - Camera preview race guard
-           - Chart sync with filters
-           - Valid SRI hashes
-           ============================================================ */
+        <!-- Camera Card -->
+        <div class="card card-field">
+            <div class="card-header-custom"><i class="bi bi-camera-fill text-primary"></i> Site Photo Proof</div>
+            <div class="card-body">
+                <div class="preview-box" id="cameraPreview">
+                    <span class="text-white-50">No photo captured</span>
+                </div>
+                <video id="videoFeed" autoplay playsinline style="display:none; width:100%; border-radius:0.8rem;"></video>
+                <div class="d-flex gap-2 mt-2">
+                    <button class="btn btn-outline-primary flex-grow-1" onclick="startCamera()"><i class="bi bi-camera"></i> Open Camera</button>
+                    <button class="btn btn-success flex-grow-1" onclick="takePhoto()" id="snapBtn" disabled><i class="bi bi-capture"></i> Capture</button>
+                </div>
+            </div>
+        </div>
 
-        // ===== UTILITY FUNCTIONS =====
-        function formatValue(val, fallback = '—') {
-            if (val === undefined || val === null || val === '') return fallback;
-            if (typeof val === 'number' && isNaN(val)) return fallback;
-            return val;
+        <!-- Audio Card -->
+        <div class="card card-field">
+            <div class="card-header-custom"><i class="bi bi-mic-fill text-warning"></i> Client Conversation Summary</div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">Record a brief summary of the client interaction for compliance and proof.</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-danger flex-grow-1" id="recordBtn" onclick="toggleRecording()">
+                        <i class="bi bi-mic"></i> <span id="recordText">Start Recording</span>
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="playRecording()" id="playBtn" disabled>
+                        <i class="bi bi-play-fill"></i> Play
+                    </button>
+                </div>
+                <div id="audioStatus" class="small text-muted mt-2 text-center">Ready to record</div>
+            </div>
+        </div>
+
+        <!-- Submit Card -->
+        <div class="card card-field border-primary">
+            <div class="card-body">
+                <button class="btn btn-primary btn-action btn-lg" onclick="submitCheckIn()" id="submitBtn" disabled>
+                    <i class="bi bi-cloud-upload-fill"></i> Submit Check-In to HQ
+                </button>
+                <div class="log-console mt-2" id="consoleLog">
+                    <div>⏳ System ready. Waiting for agent actions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // ===== STATE MANAGEMENT =====
+    const state = {
+        location: null,
+        photoBlob: null,
+        audioBlob: null,
+        mediaRecorder: null,
+        audioChunks: [],
+        stream: null
+    };
+
+    // ===== MAP INITIALIZATION (Free OpenStreetMap) =====
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    let marker = null;
+
+    // ===== LOGGER =====
+    function log(msg, type = 'info') {
+        const consoleEl = document.getElementById('consoleLog');
+        const color = type === 'error' ? '#f87171' : type === 'success' ? '#34d399' : '#a5f3fc';
+        consoleEl.innerHTML += `<div style="color:${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    // ===== 1. CAPTURE LOCATION =====
+    function captureLocation() {
+        log("Requesting GPS coordinates...", "info");
+        if (!navigator.geolocation) {
+            log("Geolocation not supported by this browser.", "error");
+            return;
         }
-
-        function formatMemory(mb) {
-            if (!mb || mb === 'unknown' || mb === 'undefined') return '—';
-            return formatValue(mb) + 'GB';
-        }
-
-        function isPermissionError(e) {
-            return e && (e.name === 'NotAllowedError' || 
-                        e.name === 'PermissionDeniedError' || 
-                        e.name === 'SecurityError' ||
-                        (e.message && e.message.toLowerCase().includes('denied')));
-        }
-
-        // ===== TIMEOUT WRAPPER =====
-        function withTimeout(promise, ms = 8000, label = 'module') {
-            return Promise.race([
-                promise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error(`${label} timeout (${ms}ms)`)), ms)
-                )
-            ]);
-        }
-
-        // ===== DEBOUNCE UTILITY =====
-        function debounce(fn, delay = 300) {
-            let timer = null;
-            return function(...args) {
-                clearTimeout(timer);
-                timer = setTimeout(() => fn.apply(this, args), delay);
-            };
-        }
-
-        // ===== DOM REFS =====
-        const UI = {
-            header: document.getElementById('deviceHeaderInfo'),
-            progress: document.getElementById('progressBar'),
-            console: document.getElementById('consoleLog'),
-            cardContainer: document.getElementById('cardContainer'),
-            chartContainer: document.getElementById('chartContainer'),
-            stats: {
-                total: document.getElementById('totalApis'),
-                supported: document.getElementById('supportedApis'),
-                unsupported: document.getElementById('unsupportedApis'),
-                granted: document.getElementById('permissionGranted'),
-                errors: document.getElementById('errorCount')
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                state.location = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+                
+                // Update UI
+                document.getElementById('locationStatus').innerHTML = 
+                    `<span class="status-badge bg-success text-white">✅ GPS Acquired (±${Math.round(state.location.accuracy)}m)</span>`;
+                
+                // Update Map
+                map.setView([state.location.lat, state.location.lng], 16);
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([state.location.lat, state.location.lng]).addTo(map)
+                    .bindPopup("Agent Location").openPopup();
+                
+                log(`Location captured: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`, "success");
+                checkReadyToSubmit();
             },
-            permStatus: document.getElementById('permStatusText'),
-            androidHint: document.getElementById('androidHint'),
-            footerTimestamp: document.getElementById('footerTimestamp'),
-            search: document.getElementById('searchInput'),
-            searchHint: document.getElementById('searchHint'),
-            filterContainer: document.getElementById('filterContainer'),
-            permButtonGroup: document.getElementById('permButtonGroup'),
-            refreshBtn: document.getElementById('refreshAllBtn'),
-            themeToggle: document.getElementById('themeToggle'),
-            grantAllBtn: document.getElementById('grantAllBtn'),
-            stepIndicator: document.getElementById('stepIndicator'),
-            stepText: document.getElementById('stepText')
-        };
+            (error) => {
+                log(`GPS Error: ${error.message}. Ensure permissions are granted.`, "error");
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
 
-        // ===== LOGGER =====
-        class Logger {
-            constructor(consoleEl) {
-                this.consoleEl = consoleEl;
-                this.maxEntries = 50;
-            }
-
-            log(msg, level = 'info', module = 'System') {
-                const entry = { time: new Date().toLocaleTimeString(), module, level, message: msg };
-                const div = document.createElement('div');
-                div.className = `log-entry ${level}`;
-                div.textContent = `${entry.time} [${module}] ${msg}`;
-                this.consoleEl.appendChild(div);
-                if (this.consoleEl.children.length > this.maxEntries) {
-                    this.consoleEl.removeChild(this.consoleEl.firstChild);
-                }
-                this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
-                return entry;
-            }
-            info(msg, module) { return this.log(msg, 'info', module); }
-            warn(msg, module) { return this.log(msg, 'warn', module); }
-            error(msg, module) { return this.log(msg, 'error', module); }
-            success(msg, module) { return this.log(msg, 'success', module); }
+    // ===== 2. CAMERA FUNCTIONS =====
+    async function startCamera() {
+        try {
+            log("Requesting camera access...", "info");
+            state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            const video = document.getElementById('videoFeed');
+            video.srcObject = state.stream;
+            video.style.display = 'block';
+            document.getElementById('cameraPreview').style.display = 'none';
+            document.getElementById('snapBtn').disabled = false;
+            log("Camera active.", "success");
+        } catch (err) {
+            log(`Camera access denied or failed: ${err.message}`, "error");
         }
+    }
 
-        // ===== THEME MANAGER =====
-        class ThemeManager {
-            constructor(toggleEl) {
-                this.toggleEl = toggleEl;
-                this.current = localStorage.getItem('theme') || 'light';
-                this.apply(this.current);
-                this.toggleEl.addEventListener('click', () => this.toggle());
-            }
+    function takePhoto() {
+        const video = document.getElementById('videoFeed');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        canvas.toBlob((blob) => {
+            state.photoBlob = blob;
+            const url = URL.createObjectURL(blob);
+            document.getElementById('cameraPreview').innerHTML = `<img src="${url}" alt="Captured Photo">`;
+            document.getElementById('cameraPreview').style.display = 'flex';
+            video.style.display = 'none';
+            
+            // Stop camera stream to save battery
+            state.stream.getTracks().forEach(track => track.stop());
+            log("Photo captured successfully.", "success");
+            checkReadyToSubmit();
+        }, 'image/jpeg', 0.8);
+    }
 
-            apply(theme) {
-                document.documentElement.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-                this.current = theme;
-                const icon = this.toggleEl.querySelector('i');
-                if (icon) icon.className = theme === 'dark' ? 'bi-sun' : 'bi-moon-stars';
-            }
+    // ===== 3. AUDIO RECORDING FUNCTIONS =====
+    async function toggleRecording() {
+        const btn = document.getElementById('recordBtn');
+        const status = document.getElementById('audioStatus');
 
-            toggle() { this.apply(this.current === 'dark' ? 'light' : 'dark'); }
-        }
+        if (!state.mediaRecorder || state.mediaRecorder.state === 'inactive') {
+            try {
+                log("Requesting microphone access...", "info");
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                state.mediaRecorder = new MediaRecorder(stream);
+                state.audioChunks = [];
 
-        // ===== DEVICE MANAGER =====
-        class DeviceManager {
-            constructor() {
-                this.info = this.detect();
-                this._protocol = window.location.protocol;
-                this._isHttps = this._protocol === 'https:';
-                this._isAndroid = /Android/i.test(navigator.userAgent);
-                if (this._isAndroid) {
-                    UI.androidHint.style.display = 'block';
-                }
-            }
-
-            detect() {
-                const ua = navigator.userAgent;
-                let os = 'Unknown', osVersion = 'Unknown', deviceName = 'Unknown PC', brand = 'Unknown', model = 'Unknown';
-                const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|Windows Phone/i.test(ua);
-
-                if (ua.includes('Windows')) { os = 'Windows'; 
-                    osVersion = ua.match(/Windows NT (\d+\.\d+)/)?.[1] || 'Unknown'; 
-                    deviceName = 'PC'; }
-                else if (ua.includes('Android')) { os = 'Android'; 
-                    osVersion = ua.match(/Android ([\d.]+)/)?.[1] || 'Unknown'; 
-                    const mm = ua.match(/; (.*?) Build/); 
-                    if (mm) { model = mm[1]; brand = model.split(' ')[0] || 'Unknown'; deviceName = model; } }
-                else if (ua.includes('iPhone')) { os = 'iOS'; 
-                    osVersion = ua.match(/OS (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown'; 
-                    deviceName = 'iPhone'; brand = 'Apple'; }
-                else if (ua.includes('Mac OS X')) { os = 'macOS'; 
-                    osVersion = ua.match(/Mac OS X (\d+_\d+)/)?.[1].replace('_', '.') || 'Unknown'; 
-                    deviceName = 'Mac'; brand = 'Apple'; }
-                else if (ua.includes('Linux')) { os = 'Linux'; deviceName = 'Linux PC'; }
-
-                let browser = 'Unknown', browserVersion = 'Unknown';
-                if (ua.includes('Chrome') && !ua.includes('Edg')) { browser = 'Chrome'; 
-                    browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
-                else if (ua.includes('Firefox')) { browser = 'Firefox'; 
-                    browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
-                else if (ua.includes('Safari') && !ua.includes('Chrome')) { browser = 'Safari'; 
-                    browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
-                else if (ua.includes('Edg')) { browser = 'Edge'; 
-                    browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
-
-                return {
-                    os, osVersion, deviceName, model, brand, isMobile,
-                    platform: navigator.platform || 'unknown',
-                    screen: { width: screen.width, height: screen.height, pixelRatio: window.devicePixelRatio || 1 },
-                    browser, browserVersion,
-                    hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
-                    deviceMemory: navigator.deviceMemory || 'unknown',
-                    language: navigator.language || 'en-US'
-                };
-            }
-
-            get isAndroid() { return this._isAndroid; }
-            get isMobile() { return this.info.isMobile; }
-
-            getHeaderText() {
-                const d = this.info;
-                const icon = d.isMobile ? '📱' : '💻';
-                const protocolMsg = this._isHttps ? ' 🔒 HTTPS' : ' 🌐 HTTP';
-                return `${icon} ${d.os} ${d.osVersion} · ${d.deviceName} · ${d.browser} ${d.browserVersion} · ${d.screen.width}x${d.screen.height} · ${d.isMobile ? 'Mobile' : 'Desktop'}${protocolMsg}`;
-            }
-
-            getDetails() {
-                const d = this.info;
-                return {
-                    OS: `${d.os} ${d.osVersion}`,
-                    Device: d.deviceName || d.model,
-                    Brand: d.brand,
-                    Memory: formatMemory(d.deviceMemory),
-                    Cores: formatValue(d.hardwareConcurrency),
-                    Screen: `${d.screen.width}x${d.screen.height}`,
-                    Browser: `${d.browser} ${d.browserVersion}`,
-                    Language: d.language,
-                    Protocol: this._isHttps ? 'HTTPS ✅' : 'HTTP ⚠️'
-                };
-            }
-        }
-
-        // ===== PERMISSION MANAGER =====
-        class PermissionManager {
-            constructor(logger, device) {
-                this.logger = logger;
-                this.device = device;
-                this.permissions = { geolocation: 'prompt', camera: 'prompt', microphone: 'prompt', notifications: 'prompt', clipboard: 'prompt' };
-                this._ipGeoData = null;
-                this._clipboardContent = [];
-                this._listeners = [];
-                this._isAndroid = device.isAndroid;
-                this._stepState = { current: 0, total: 5, results: [] };
-                this._isStepFlowRunning = false;
-            }
-
-            onPermissionChange(callback) { this._listeners.push(callback); }
-
-            _notify() { this._listeners.forEach(cb => cb(this.permissions)); }
-
-            getStatus(api) { return this.permissions[api] || 'unknown'; }
-            isGranted(api) { return this.getStatus(api) === 'granted'; }
-            getIPGeo() { return this._ipGeoData; }
-            getClipboardContent() { return this._clipboardContent; }
-
-            // ===== STEP-BY-STEP GRANT ALL =====
-            async requestAllStepByStep() {
-                if (this._isStepFlowRunning) {
-                    this.logger.warn('Step flow already running', 'Permissions');
-                    return;
-                }
-                this._isStepFlowRunning = true;
-                UI.stepIndicator.style.display = 'flex';
-                UI.grantAllBtn.disabled = true;
-                
-                const steps = [
-                    { id: 'geolocation', label: 'GPS', fn: () => this.requestGeolocation() },
-                    { id: 'camera', label: 'Camera', fn: () => this.requestCamera() },
-                    { id: 'microphone', label: 'Microphone', fn: () => this.requestMicrophone() },
-                    { id: 'notifications', label: 'Notifications', fn: () => this.requestNotifications() },
-                    { id: 'clipboard', label: 'Clipboard', fn: () => this.requestClipboard() }
-                ];
-
-                const results = [];
-                for (let i = 0; i < steps.length; i++) {
-                    const step = steps[i];
-                    this._stepState.current = i + 1;
-                    this._updateStepUI(i + 1, steps.length, 'active');
-                    UI.stepText.textContent = `Step ${i+1}/${steps.length}: ${step.label}`;
-                    this.logger.info(`👉 Step ${i+1}/${steps.length}: ${step.label}`, 'Permissions');
-                    
-                    try {
-                        const result = await step.fn();
-                        results.push({ step: step.id, success: result });
-                        this._updateStepUI(i + 1, steps.length, result ? 'done' : 'error');
-                        if (!result) {
-                            this.logger.warn(`⚠️ ${step.label} permission was denied`, 'Permissions');
-                        } else {
-                            this.logger.success(`✅ ${step.label} permission granted`, 'Permissions');
-                        }
-                    } catch (e) {
-                        results.push({ step: step.id, success: false, error: e.message });
-                        this._updateStepUI(i + 1, steps.length, 'error');
-                        this.logger.error(`❌ ${step.label} error: ${e.message}`, 'Permissions');
-                    }
-                    
-                    // Small delay between steps for UI updates
-                    if (i < steps.length - 1) {
-                        await new Promise(r => setTimeout(r, 500));
-                    }
-                }
-
-                this._stepState.results = results;
-                UI.stepText.textContent = `✅ Complete! ${results.filter(r => r.success).length}/${steps.length} granted`;
-                this.logger.info(`✅ Step flow complete: ${results.filter(r => r.success).length}/${steps.length} granted`, 'Permissions');
-                
-                setTimeout(() => {
-                    UI.stepIndicator.style.display = 'none';
-                    UI.grantAllBtn.disabled = false;
-                    this._isStepFlowRunning = false;
-                }, 3000);
-                
-                this._notify();
-                return results;
-            }
-
-            _updateStepUI(current, total, state) {
-                const dots = document.querySelectorAll('.step-dot');
-                dots.forEach((dot, idx) => {
-                    const stepNum = idx + 1;
-                    if (stepNum === current && state === 'active') {
-                        dot.className = 'step-dot active';
-                    } else if (stepNum < current || (stepNum === current && state === 'done')) {
-                        dot.className = 'step-dot done';
-                    } else if (stepNum === current && state === 'error') {
-                        dot.className = 'step-dot error';
-                    } else {
-                        dot.className = 'step-dot pending';
-                    }
-                });
-            }
-
-            // ===== Individual Permission Requests =====
-            async requestCamera() {
-                this.logger.info('📷 Requesting Camera permission...', 'Permissions');
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'user' }, 
-                        audio: false 
-                    });
-                    stream.getTracks().forEach(t => t.stop());
-                    this.permissions.camera = 'granted';
-                    this.logger.success('Camera permission granted', 'Permissions');
-                    this._notify();
-                    return true;
-                } catch (e) {
-                    const msg = isPermissionError(e) ? 
-                        'Permission denied. Click "Camera" button again and tap "Allow"' : 
-                        e.message || 'Camera access failed';
-                    this.permissions.camera = isPermissionError(e) ? 'denied' : 'error';
-                    this.logger.error(`Camera: ${msg}`, 'Permissions');
-                    this._notify();
-                    return false;
-                }
-            }
-
-            async requestMicrophone() {
-                this.logger.info('🎤 Requesting Microphone permission...', 'Permissions');
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    stream.getTracks().forEach(t => t.stop());
-                    this.permissions.microphone = 'granted';
-                    this.logger.success('Microphone permission granted', 'Permissions');
-                    this._notify();
-                    return true;
-                } catch (e) {
-                    const msg = isPermissionError(e) ? 
-                        'Permission denied. Click "Mic" button again and tap "Allow"' : 
-                        e.message || 'Microphone access failed';
-                    this.permissions.microphone = isPermissionError(e) ? 'denied' : 'error';
-                    this.logger.error(`Microphone: ${msg}`, 'Permissions');
-                    this._notify();
-                    return false;
-                }
-            }
-
-            async requestGeolocation() {
-                this.logger.info('📍 Requesting Geolocation permission...', 'Permissions');
-                try {
-                    const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 }));
-                    this.permissions.geolocation = 'granted';
-                    this.logger.success('Geolocation granted', 'Permissions');
-                    this._notify();
-                    return true;
-                } catch (e) {
-                    this.permissions.geolocation = isPermissionError(e) ? 'denied' : 'error';
-                    this.logger.error(`Geolocation: ${e.message || 'denied'}`, 'Permissions');
-                    this._notify();
-                    return false;
-                }
-            }
-
-            async requestNotifications() {
-                this.logger.info('🔔 Requesting Notifications permission...', 'Permissions');
-                try {
-                    const result = await Notification.requestPermission();
-                    this.permissions.notifications = result;
-                    this.logger[result === 'granted' ? 'success' : 'warn'](`Notifications: ${result}`, 'Permissions');
-                    this._notify();
-                    return result === 'granted';
-                } catch (e) {
-                    this.permissions.notifications = 'error';
-                    this.logger.error(`Notifications error: ${e.message}`, 'Permissions');
-                    this._notify();
-                    return false;
-                }
-            }
-
-            async requestClipboard() {
-                this.logger.info('📋 Requesting Clipboard permission...', 'Permissions');
-                try {
-                    if (!navigator.clipboard?.read) {
-                        this.logger.error('Clipboard API not available', 'Permissions');
-                        this.permissions.clipboard = 'error';
-                        this._notify();
-                        return false;
-                    }
-                    const items = await navigator.clipboard.read();
-                    this.permissions.clipboard = 'granted';
-                    this._clipboardContent = [];
-                    for (const item of items) {
-                        for (const type of item.types) {
-                            try {
-                                const data = await item.getType(type);
-                                if (type.startsWith('text/')) {
-                                    const text = await data.text();
-                                    if (text) this._clipboardContent.push(text.substring(0, 300));
-                                } else if (type.startsWith('image/')) {
-                                    this._clipboardContent.push(`[Image: ${type}]`);
-                                } else {
-                                    this._clipboardContent.push(`[Data: ${type}]`);
-                                }
-                            } catch (e) {
-                                this._clipboardContent.push(`[Error: ${e.message}]`);
-                            }
-                        }
-                    }
-                    this.logger.success(`Clipboard: ${items.length} items`, 'Permissions');
-                    this._notify();
-                    return true;
-                } catch (e) {
-                    this.permissions.clipboard = isPermissionError(e) ? 'denied' : 'error';
-                    this.logger.error(`Clipboard: ${e.message || 'error'}`, 'Permissions');
-                    this._notify();
-                    return false;
-                }
-            }
-
-            async requestAll() {
-                // Use step-by-step flow for better UX
-                return this.requestAllStepByStep();
-            }
-
-            getSummary() {
-                const granted = Object.values(this.permissions).filter(p => p === 'granted').length;
-                const total = Object.keys(this.permissions).length;
-                return { granted, total, text: granted === total ? '✅ All granted!' : `✅ ${granted}/${total} granted` };
-            }
-        }
-
-        // ===== MODULE RUNNER =====
-        class ModuleRunner {
-            constructor(logger, permissions, device) {
-                this.logger = logger;
-                this.permissions = permissions;
-                this.device = device;
-                this.modules = [];
-                this.results = {};
-                this.stats = { total: 0, supported: 0, unsupported: 0, granted: 0, errors: 0 };
-                this.isRunning = false;
-                this._chartInstances = [];
-                this._cameraStream = null;
-                // ===== FIXED: Per-module mic state =====
-                this._micState = new Map(); // modId -> { stream, recorder, chunks, blob, isRecording }
-                this._cameraPreviewActive = new Map(); // video element id -> boolean
-                this._micDelegated = false;
-                this._timeoutMs = 10000;
-            }
-
-            register(module) { 
-                // Set default timeout if not specified
-                if (!module.timeoutMs) module.timeoutMs = 8000;
-                this.modules.push(module); 
-            }
-
-            async runAll() {
-                if (this.isRunning) {
-                    this.logger.warn('Scan already in progress...', 'System');
-                    return;
-                }
-                this.isRunning = true;
-                this.results = {};
-                this.stats = { total: this.modules.length, supported: 0, unsupported: 0, granted: 0, errors: 0 };
-                UI.progress.style.width = '0%';
-                this.logger.info('🚀 Scanning APIs...', 'System');
-
-                const promises = this.modules.map(async (mod) => {
-                    const startTime = performance.now();
-                    try {
-                        // ===== FIXED: Timeout wrapper =====
-                        const result = await withTimeout(
-                            mod.execute({
-                                logger: this.logger,
-                                permissions: this.permissions,
-                                device: this.device,
-                                getClipboardContent: () => this.permissions.getClipboardContent(),
-                                getIPGeo: () => this.permissions.getIPGeo(),
-                                isAndroid: this.device.isAndroid
-                            }),
-                            mod.timeoutMs,
-                            mod.id
-                        );
-                        result._time = (performance.now() - startTime).toFixed(1);
-                        result._module = mod.id;
-                        this.results[mod.id] = result;
-                        if (result.status === 'supported') this.stats.supported++;
-                        else if (result.status === 'unsupported') this.stats.unsupported++;
-                        else if (result.status === 'error') this.stats.errors++;
-                        if (result.permission === 'granted') this.stats.granted++;
-                        this.logger.info(`✅ ${mod.name} ${result.status} (${result._time}ms)`, mod.name);
-                    } catch (e) {
-                        const errorMsg = e.message || 'Unknown error';
-                        this.results[mod.id] = { status: 'error', error: errorMsg, details: { Error: errorMsg } };
-                        this.stats.errors++;
-                        this.logger.error(`❌ ${mod.name} error: ${errorMsg}`, mod.name);
-                    }
-                });
-
-                await Promise.allSettled(promises);
-
-                this.isRunning = false;
-                this.updateStats();
-                UI.progress.style.width = '100%';
-                this.logger.info('✅ Scan complete.', 'System');
-                return this.results;
-            }
-
-            updateStats() {
-                UI.stats.total.textContent = this.stats.total;
-                UI.stats.supported.textContent = this.stats.supported;
-                UI.stats.unsupported.textContent = this.stats.unsupported;
-                UI.stats.granted.textContent = this.stats.granted;
-                UI.stats.errors.textContent = this.stats.errors;
-            }
-
-            getResults() { return this.results; }
-            getStats() { return this.stats; }
-
-            // ===== FIXED: Delegated mic controls with per-module state =====
-            setupMicDelegatedListener() {
-                if (this._micDelegated) return;
-                this._micDelegated = true;
-
-                UI.cardContainer.addEventListener('click', (e) => {
-                    const target = e.target.closest('[data-mic-action]');
-                    if (!target) return;
-                    
-                    const action = target.dataset.micAction;
-                    const modId = target.dataset.module;
-                    if (!modId) return;
-                    
-                    // Initialize state for this module if not exists
-                    if (!this._micState.has(modId)) {
-                        this._micState.set(modId, {
-                            stream: null,
-                            recorder: null,
-                            chunks: [],
-                            blob: null,
-                            isRecording: false
-                        });
-                    }
-                    
-                    const recordBtn = document.querySelector(`.mic-record-btn[data-module="${modId}"]`);
-                    const playBtn = document.querySelector(`.mic-play-btn[data-module="${modId}"]`);
-                    const stopBtn = document.querySelector(`.mic-stop-btn[data-module="${modId}"]`);
-                    const statusEl = document.querySelector(`.mic-status[data-module="${modId}"]`);
-
-                    if (action === 'record') this._handleRecord(modId, recordBtn, statusEl);
-                    else if (action === 'play') this._handlePlay(modId, statusEl);
-                    else if (action === 'stop') this._handleStop(modId, recordBtn, statusEl);
-                });
-            }
-
-            _getMicState(modId) {
-                if (!this._micState.has(modId)) {
-                    this._micState.set(modId, {
-                        stream: null,
-                        recorder: null,
-                        chunks: [],
-                        blob: null,
-                        isRecording: false
-                    });
-                }
-                return this._micState.get(modId);
-            }
-
-            async _handleRecord(modId, recordBtn, statusEl) {
-                if (!recordBtn) return;
-                const state = this._getMicState(modId);
-                const self = this;
-
-                if (state.isRecording) {
-                    if (state.recorder && state.recorder.state === 'recording') {
-                        state.recorder.stop();
-                        state.isRecording = false;
-                        recordBtn.dataset.recording = 'false';
-                        recordBtn.textContent = '🎙️ Record';
-                        if (statusEl) statusEl.textContent = 'Stopped';
-                    }
-                    return;
-                }
-
-                try {
-                    if (state.stream) state.stream.getTracks().forEach(t => t.stop());
-                    state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    state.recorder = new MediaRecorder(state.stream);
-                    state.chunks = [];
-                    state.recorder.ondataavailable = e => state.chunks.push(e.data);
-                    state.recorder.onstop = () => {
-                        state.blob = new Blob(state.chunks, { type: 'audio/webm' });
-                        if (statusEl) statusEl.textContent = 'Recorded ' + (state.blob.size / 1024).toFixed(1) + ' KB';
-                        self.logger.info(`🎤 Audio recorded (${modId})`, 'Microphone');
-                        state.isRecording = false;
-                        recordBtn.dataset.recording = 'false';
-                        recordBtn.textContent = '🎙️ Record';
-                    };
-                    state.recorder.start();
-                    state.isRecording = true;
-                    recordBtn.dataset.recording = 'true';
-                    recordBtn.textContent = '⏺️ Recording...';
-                    if (statusEl) statusEl.textContent = 'Recording...';
-                    self.logger.info(`🎤 Recording started (${modId})`, 'Microphone');
-                } catch (e) {
-                    if (statusEl) statusEl.textContent = 'Error: ' + e.message;
-                    this.logger.error(`Mic error (${modId}): ${e.message}`, 'Microphone');
-                }
-            }
-
-            _handlePlay(modId, statusEl) {
-                const state = this._getMicState(modId);
-                if (!state.blob) {
-                    if (statusEl) statusEl.textContent = 'No recording';
-                    return;
-                }
-                const url = URL.createObjectURL(state.blob);
-                const audio = new Audio(url);
-                audio.play();
-                if (statusEl) statusEl.textContent = 'Playing...';
-                audio.onended = () => {
-                    if (statusEl) statusEl.textContent = 'Playback finished';
-                    URL.revokeObjectURL(url);
-                };
-            }
-
-            _handleStop(modId, recordBtn, statusEl) {
-                const state = this._getMicState(modId);
-                if (state.recorder && state.recorder.state === 'recording') {
-                    state.recorder.stop();
-                    state.isRecording = false;
-                    if (recordBtn) {
-                        recordBtn.dataset.recording = 'false';
-                        recordBtn.textContent = '🎙️ Record';
-                    }
-                    if (statusEl) statusEl.textContent = 'Stopped';
-                }
-            }
-
-            // ===== FIXED: Camera preview with race guard =====
-            async startCameraPreview(videoEl) {
-                if (!videoEl) return;
-                const videoId = videoEl.id || 'unknown';
-                
-                // Check if already has active stream
-                if (videoEl.srcObject && this._cameraPreviewActive.get(videoId)) {
-                    this.logger.debug(`Camera preview already active for ${videoId}`, 'Camera');
-                    return;
-                }
-                
-                try {
-                    if (this._cameraStream) { 
-                        this._cameraStream.getTracks().forEach(t => t.stop()); 
-                        this._cameraStream = null;
-                    }
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-                    this._cameraStream = stream;
-                    videoEl.srcObject = stream;
-                    await videoEl.play();
-                    this._cameraPreviewActive.set(videoId, true);
-                    this.logger.info('📷 Camera preview started', 'Camera');
-                } catch (e) {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                        this._cameraStream = stream;
-                        videoEl.srcObject = stream;
-                        await videoEl.play();
-                        this._cameraPreviewActive.set(videoId, true);
-                        this.logger.info('📷 Camera preview started (fallback)', 'Camera');
-                    } catch (e2) {
-                        this._cameraPreviewActive.set(videoId, false);
-                        this.logger.error(`Camera preview failed: ${e2.message}`, 'Camera');
-                    }
-                }
-            }
-
-            stopCamera() {
-                if (this._cameraStream) {
-                    this._cameraStream.getTracks().forEach(t => t.stop());
-                    this._cameraStream = null;
-                }
-                this._cameraPreviewActive.clear();
-            }
-
-            stopMicrophone(modId) {
-                if (modId) {
-                    const state = this._micState.get(modId);
-                    if (state) {
-                        if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); state.stream = null; }
-                        if (state.recorder && state.recorder.state === 'recording') { state.recorder.stop(); }
-                        state.isRecording = false;
-                        state.chunks = [];
-                        state.blob = null;
-                    }
-                } else {
-                    // Clean all
-                    for (const [id, state] of this._micState) {
-                        if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); }
-                        if (state.recorder && state.recorder.state === 'recording') { state.recorder.stop(); }
-                        state.isRecording = false;
-                        state.chunks = [];
-                        state.blob = null;
-                    }
-                }
-            }
-
-            cleanup() {
-                this.stopCamera();
-                this.stopMicrophone();
-                this._chartInstances.forEach(chart => { try { chart.destroy(); } catch (e) {} });
-                this._chartInstances = [];
-            }
-        }
-
-        // ===== RENDERER =====
-        class Renderer {
-            constructor(container, logger) {
-                this.container = container;
-                this.logger = logger;
-                this._currentFilter = 'all';
-                this._searchTerm = '';
-                this._debouncedRender = debounce(() => this._doRender(), 300);
-                this._modules = [];
-                this._results = {};
-            }
-
-            setFilter(filter) { this._currentFilter = filter; this._debouncedRender(); }
-            setSearch(term) { 
-                this._searchTerm = term.toLowerCase(); 
-                if (UI.searchHint) {
-                    UI.searchHint.textContent = term.length > 0 ? `🔍 ${term.length} chars...` : 'Type to filter...';
-                }
-                this._debouncedRender(); 
-            }
-
-            render(modules, results) {
-                this._modules = modules || [];
-                this._results = results || {};
-                this._debouncedRender();
-            }
-
-            getFilteredModules() {
-                const searchTerm = this._searchTerm;
-                const filterType = this._currentFilter;
-                
-                return this._modules.filter(mod => {
-                    const res = this._results[mod.id] || { status: 'unknown', details: {} };
-                    if (filterType === 'supported' && res.status !== 'supported') return false;
-                    if (filterType === 'unsupported' && res.status !== 'unsupported') return false;
-                    if (filterType === 'error' && res.status !== 'error') return false;
-                    if (filterType === 'permission' && res.permission !== 'denied' && res.permission !== 'prompt') return false;
-                    const cardText = `${mod.name} ${mod.category} ${JSON.stringify(res.details)}`.toLowerCase();
-                    return cardText.includes(searchTerm);
-                });
-            }
-
-            _doRender() {
-                if (!this._modules.length) return;
-                const filteredModules = this.getFilteredModules();
-                const fragment = document.createDocumentFragment();
-
-                filteredModules.forEach(mod => {
-                    const res = this._results[mod.id] || { status: 'unknown', details: {} };
-
-                    const card = document.createElement('div');
-                    card.className = 'col-6 col-md-4 col-lg-3';
-                    const sc = res.status === 'supported' ? 'status-ok' : (res.status === 'unsupported' ? 'status-err' : 'status-warn');
-
-                    let detailsHtml = '<ul class="list-detail">';
-                    if (res.details && typeof res.details === 'object') {
-                        const entries = Object.entries(res.details);
-                        if (entries.length === 0) {
-                            detailsHtml += `<li><span class="small-text">No details available</span></li>`;
-                        } else {
-                            for (const [k, v] of entries) {
-                                if (k === '_raw') continue;
-                                if (Array.isArray(v) && v.length > 0) {
-                                    detailsHtml += `<li><span>${k}</span> <span class="value-badge">${v.length} items</span></li>`;
-                                    v.slice(0, 5).forEach((item, idx) => {
-                                        const displayItem = typeof item === 'string' ? item : JSON.stringify(item).substring(0, 60);
-                                        detailsHtml += `<li><span class="small-text">  #${idx+1}</span> <span class="value-badge">${displayItem}</span></li>`;
-                                    });
-                                } else if (typeof v === 'object' && v !== null) {
-                                    detailsHtml += `<li><span>${k}</span> <span class="value-badge">${JSON.stringify(v).substring(0, 40)}</span></li>`;
-                                } else {
-                                    detailsHtml += `<li><span>${k}</span> <span class="value-badge">${formatValue(v)}</span></li>`;
-                                }
-                            }
-                        }
-                    } else {
-                        detailsHtml += `<li><span class="small-text">${res.error || 'No details'}</span></li>`;
-                    }
-                    detailsHtml += '</ul>';
-
-                    const mediaHtml = (mod.id === 'camera' && res.status === 'supported' && res.permission === 'granted') ?
-                        `<video id="cameraPreview_${mod.id}" autoplay playsinline class="media-preview" style="max-width:100%;height:auto;border-radius:8px;max-height:100px;"></video>` :
-                        (mod.id === 'microphone' && res.status === 'supported' && res.permission === 'granted') ?
-                        `<div class="mt-1">
-                            <button class="btn btn-sm btn-outline-primary me-1 mic-record-btn" data-module="${mod.id}" data-mic-action="record">🎙️ Record</button>
-                            <button class="btn btn-sm btn-outline-secondary me-1 mic-play-btn" data-module="${mod.id}" data-mic-action="play">▶️ Play</button>
-                            <button class="btn btn-sm btn-outline-danger mic-stop-btn" data-module="${mod.id}" data-mic-action="stop">⏹️ Stop</button>
-                            <span class="mic-status small-text ms-1" data-module="${mod.id}"></span>
-                        </div>` :
-                        '';
-
-                    card.innerHTML = `
-                        <div class="card-api" data-module="${mod.id}" data-status="${res.status}">
-                            <div class="card-header"><i class="${mod.icon}"></i> ${mod.name} <span class="ms-auto status-indicator ${sc}"></span></div>
-                            <div class="card-body">
-                                ${detailsHtml}
-                                ${mediaHtml}
-                                <div class="small-text mt-1">${res.status} ${res.permission ? '· '+res.permission : ''}</div>
-                                ${res._time ? `<div class="module-timing">⏱ ${res._time}ms</div>` : ''}
-                            </div>
-                        </div>
-                    `;
-                    fragment.appendChild(card);
-                });
-
-                this.container.replaceChildren(fragment);
-                return filteredModules;
-            }
-        }
-
-        // ===== EXPORT MANAGER =====
-        class ExportManager {
-            constructor(logger) { this.logger = logger; }
-
-            exportData(format, device, permissions, stats, results) {
-                const data = {
-                    timestamp: new Date().toISOString(),
-                    device: device.info,
-                    ipGeo: permissions.getIPGeo(),
-                    permissions: permissions.permissions,
-                    stats: stats,
-                    modules: results
+                state.mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) state.audioChunks.push(e.data);
                 };
 
-                let blob;
-                if (format === 'json') {
-                    blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                } else if (format === 'csv') {
-                    let csv = 'Module,Status,Permission,Error,Time\n';
-                    for (const [id, res] of Object.entries(data.modules)) {
-                        csv += `${id},${res.status},${res.permission||''},${res.error||''},${res._time||''}\n`;
-                    }
-                    blob = new Blob([csv], { type: 'text/csv' });
-                } else if (format === 'html') {
-                    blob = new Blob([`<html><head><title>API Report</title><style>body{font-family:sans-serif;padding:20px;}</style></head><body><h1>API Study Report</h1><pre>${JSON.stringify(data, null, 2)}</pre></body></html>`], { type: 'text/html' });
-                }
+                state.mediaRecorder.onstop = () => {
+                    state.audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                    log(`Audio recorded: ${(state.audioBlob.size / 1024).toFixed(1)} KB`, "success");
+                    document.getElementById('playBtn').disabled = false;
+                    checkReadyToSubmit();
+                };
 
-                if (blob) {
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `dashboard.${format}`;
-                    a.click();
-                    URL.revokeObjectURL(a.href);
-                    this.logger.info(`📤 Exported as ${format}`, 'Export');
-                }
+                state.mediaRecorder.start();
+                btn.classList.add('recording-pulse');
+                document.getElementById('recordText').textContent = "Stop Recording";
+                status.textContent = "🔴 Recording in progress...";
+                log("Recording started.", "info");
+            } catch (err) {
+                log(`Microphone access denied: ${err.message}`, "error");
             }
+        } else {
+            state.mediaRecorder.stop();
+            state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            btn.classList.remove('recording-pulse');
+            document.getElementById('recordText').textContent = "Start Recording";
+            status.textContent = "✅ Recording saved. Ready to submit.";
+        }
+    }
+
+    function playRecording() {
+        if (!state.audioBlob) return;
+        const url = URL.createObjectURL(state.audioBlob);
+        new Audio(url).play();
+        log("Playing back audio...", "info");
+    }
+
+    // ===== 4. SUBMIT TO API =====
+    function checkReadyToSubmit() {
+        if (state.location && state.photoBlob) {
+            document.getElementById('submitBtn').disabled = false;
+        }
+    }
+
+    async function submitCheckIn() {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading to HQ...';
+        log("Preparing payload for API...", "info");
+
+        // Create FormData to send files and text together
+        const formData = new FormData();
+        formData.append('agentId', '8842');
+        formData.append('timestamp', new Date().toISOString());
+        formData.append('latitude', state.location.lat);
+        formData.append('longitude', state.location.lng);
+        formData.append('accuracy', state.location.accuracy);
+        formData.append('photo', state.photoBlob, 'proof.jpg');
+        if (state.audioBlob) {
+            formData.append('audio', state.audioBlob, 'summary.webm');
         }
 
-        // ===== CHART MANAGER =====
-        class ChartManager {
-            constructor(container, logger) {
-                this.container = container;
-                this.logger = logger;
-                this.charts = [];
-                this._chartRowId = 'chartRowContainer';
-                this._cachedFilteredModules = [];
-            }
+        try {
+            // ======================================================================
+            // TODO: REPLACE THIS URL WITH YOUR ACTUAL API ENDPOINT
+            // Example: 'https://your-free-supabase-project.supabase.co/rest/v1/checkins'
+            // For now, we simulate a successful network request.
+            // ======================================================================
+            
+            // Simulating network delay
+            await new Promise(resolve => setTimeout(resolve, 1500)); 
+            
+            // const response = await fetch('YOUR_API_ENDPOINT_HERE', {
+            //     method: 'POST',
+            //     body: formData
+            // });
+            // if (!response.ok) throw new Error('API request failed');
 
-            render(stats, results, modules, filteredModules) {
-                const oldRow = document.getElementById(this._chartRowId);
-                if (oldRow) oldRow.remove();
+            log("✅ Check-in successfully transmitted to HQ!", "success");
+            alert("Check-In Submitted Successfully!\nLocation, Photo, and Audio have been sent to the manager dashboard.");
+            
+            // Reset form
+            state.location = null; state.photoBlob = null; state.audioBlob = null;
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-cloud-upload-fill"></i> Submit Check-In to HQ';
+            document.getElementById('locationStatus').innerHTML = '<span class="status-badge bg-secondary text-white">Waiting for GPS...</span>';
+            document.getElementById('cameraPreview').innerHTML = '<span class="text-white-50">No photo captured</span>';
+            document.getElementById('audioStatus').textContent = "Ready to record";
+            document.getElementById('playBtn').disabled = true;
 
-                this.charts.forEach(chart => { try { chart.destroy(); } catch (e) {} });
-                this.charts = [];
-
-                const chartRow = document.createElement('div');
-                chartRow.id = this._chartRowId;
-                chartRow.className = 'chart-container';
-                chartRow.innerHTML = `
-                    <div class="row g-2">
-                        <div class="col-md-4"><canvas id="supportChart" height="100"></canvas></div>
-                        <div class="col-md-4"><canvas id="permissionChart" height="100"></canvas></div>
-                        <div class="col-md-4"><canvas id="timingChart" height="100"></canvas></div>
-                    </div>
-                `;
-                this.container.appendChild(chartRow);
-
-                const s = stats;
-                const ctx1 = document.getElementById('supportChart')?.getContext('2d');
-                if (ctx1) {
-                    this.charts.push(new Chart(ctx1, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Supported', 'Unsupported', 'Error'],
-                            datasets: [{ data: [s.supported, s.unsupported, Math.max(0, s.total - s.supported - s.unsupported)], backgroundColor: ['#22c55e', '#ef4444', '#eab308'] }]
-                        },
-                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } }, maintainAspectRatio: false }
-                    }));
-                }
-
-                const ctx2 = document.getElementById('permissionChart')?.getContext('2d');
-                if (ctx2) {
-                    this.charts.push(new Chart(ctx2, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Granted', 'Denied/Unknown'],
-                            datasets: [{ data: [s.granted, Math.max(0, s.total - s.granted)], backgroundColor: ['#3b82f6', '#94a3b8'] }]
-                        },
-                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 8 } } }, maintainAspectRatio: false }
-                    }));
-                }
-
-                const ctx3 = document.getElementById('timingChart')?.getContext('2d');
-                if (ctx3) {
-                    // Use filtered modules if available, otherwise all modules
-                    const targetModules = (filteredModules && filteredModules.length > 0) ? filteredModules : modules;
-                    const labels = targetModules.slice(0, 10).map(m => m.id.substring(0, 8));
-                    const times = targetModules.slice(0, 10).map(m => {
-                        const res = results[m.id];
-                        return res ? parseFloat(res._time) || 0 : 0;
-                    });
-                    this.charts.push(new Chart(ctx3, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{ label: 'Time (ms)', data: times, backgroundColor: '#3b82f6' }]
-                        },
-                        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-                    }));
-                }
-            }
-
-            destroy() {
-                this.charts.forEach(chart => { try { chart.destroy(); } catch (e) {} });
-                this.charts = [];
-            }
+        } catch (error) {
+            log(`Upload failed: ${error.message}`, "error");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-cloud-upload-fill"></i> Retry Submission';
         }
-
-        // ===== MODULE DEFINITIONS =====
-        const moduleDefinitions = [
-            { id: 'device', name: 'Device', icon: 'bi-device-ssd', category: 'Device', permission: false, timeoutMs: 3000,
-                execute: ({ device }) => ({ status: 'supported', details: device.getDetails() }) },
-            { id: 'browser', name: 'Browser', icon: 'bi-browser-chrome', category: 'Browser', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    let brand = '—', ver = '—';
-                    if (navigator.userAgentData) {
-                        brand = navigator.userAgentData.brands.map(b => `${b.brand} ${b.version}`).join(', ');
-                        ver = navigator.userAgentData.mobile ? 'mobile' : 'desktop';
-                    } else {
-                        const ua = navigator.userAgent;
-                        brand = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ? 'Safari' : 'Unknown';
-                        ver = navigator.appVersion || '—';
-                    }
-                    return { status: 'supported', details: { Brand: brand, Version: ver, 'User Agent': navigator.userAgent.substring(0, 60) + '…' } };
-                }
-            },
-            { id: 'network', name: 'Network', icon: 'bi-wifi', category: 'Network', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-                    const d = { Online: navigator.onLine ? '✅' : '❌' };
-                    if (conn) {
-                        d.Type = conn.effectiveType || '—';
-                        d.Downlink = conn.downlink ? conn.downlink + ' Mbps' : '—';
-                        d.RTT = conn.rtt ? conn.rtt + ' ms' : '—';
-                    } else {
-                        d['Network API'] = 'not supported';
-                    }
-                    return { status: 'supported', details: d };
-                }
-            },
-            { id: 'ipgeo', name: 'IP Geolocation', icon: 'bi-globe2', category: 'Network', permission: false, timeoutMs: 5000,
-                execute: ({ getIPGeo }) => {
-                    const geo = getIPGeo();
-                    if (!geo) return { status: 'error', details: { Error: 'IP Geolocation data not available' } };
-                    return {
-                        status: 'supported',
-                        permission: 'granted',
-                        details: {
-                            'IP': geo.ip || '—',
-                            'Country': geo.country_name || '—',
-                            'City': geo.city || '—',
-                            'Coordinates': geo.latitude && geo.longitude ? `${geo.latitude},${geo.longitude}` : '—',
-                            'ISP': geo.org || '—',
-                            'Time Zone': geo.timezone || '—',
-                            'ASN': geo.asn || '—'
-                        }
-                    };
-                }
-            },
-            { id: 'geo', name: 'Geolocation', icon: 'bi-geo-alt', category: 'Location', permission: true, timeoutMs: 10000,
-                execute: ({ permissions }) => {
-                    if (!('geolocation' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    if (!permissions.isGranted('geolocation')) {
-                        return { status: 'error', permission: 'denied', details: { Error: 'Permission denied. Click "GPS" button above.' } };
-                    }
-                    return new Promise((resolve) => {
-                        navigator.geolocation.getCurrentPosition(
-                            (pos) => resolve({ status: 'supported', permission: 'granted', details: { Latitude: pos.coords.latitude.toFixed(4), Longitude: pos.coords.longitude.toFixed(4), Accuracy: pos.coords.accuracy + 'm' } }),
-                            (e) => resolve({ status: 'error', error: e.message, details: { Error: e.message } }),
-                            { timeout: 8000 }
-                        );
-                    });
-                }
-            },
-            { id: 'permissions', name: 'Permissions', icon: 'bi-shield-lock', category: 'Security', permission: false, timeoutMs: 5000,
-                execute: async ({ permissions }) => {
-                    if (!navigator.permissions) return { status: 'unsupported', details: { Error: 'Permissions API missing' } };
-                    const perms = ['geolocation', 'camera', 'microphone', 'notifications'];
-                    const d = {};
-                    for (const p of perms) {
-                        try {
-                            const st = await navigator.permissions.query({ name: p });
-                            d[p] = st.state || 'unknown';
-                        } catch { d[p] = 'error'; }
-                    }
-                    d.clipboard = permissions.getStatus('clipboard');
-                    return { status: 'supported', details: d };
-                }
-            },
-            { id: 'clipboard', name: 'Clipboard', icon: 'bi-clipboard', category: 'Browser', permission: true, timeoutMs: 5000,
-                execute: ({ permissions, getClipboardContent }) => {
-                    if (!navigator.clipboard?.read) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    if (!permissions.isGranted('clipboard')) {
-                        return { status: 'error', permission: 'denied', details: { Error: 'Permission denied. Click "Clipboard" button above.' } };
-                    }
-                    const content = getClipboardContent();
-                    return {
-                        status: 'supported',
-                        permission: 'granted',
-                        details: {
-                            'Items': content.length,
-                            'Content': content.length > 0 ? content : ['No readable content']
-                        }
-                    };
-                }
-            },
-            { id: 'camera', name: 'Camera', icon: 'bi-camera', category: 'Media', permission: true, timeoutMs: 8000,
-                execute: ({ permissions, isAndroid }) => {
-                    if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported', details: { Error: 'MediaDevices not supported' } };
-                    if (!permissions.isGranted('camera')) {
-                        return { status: 'error', permission: 'denied', details: { Error: isAndroid ? 'Please click "Camera" button and tap "Allow"' : 'Permission denied. Click "Camera" button above.' } };
-                    }
-                    return new Promise((resolve) => {
-                        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-                            .then(stream => {
-                                stream.getTracks().forEach(t => t.stop());
-                                navigator.mediaDevices.enumerateDevices()
-                                    .then(devices => {
-                                        const cams = devices.filter(d => d.kind === 'videoinput');
-                                        const d = { Count: cams.length };
-                                        cams.forEach((c, i) => d[`Cam${i+1}`] = c.label || 'unnamed');
-                                        resolve({ status: 'supported', permission: 'granted', details: d });
-                                    })
-                                    .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
-                            })
-                            .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e.message || 'Camera access failed' } }));
-                    });
-                }
-            },
-            { id: 'microphone', name: 'Microphone', icon: 'bi-mic', category: 'Media', permission: true, timeoutMs: 8000,
-                execute: ({ permissions, isAndroid }) => {
-                    if (!navigator.mediaDevices?.enumerateDevices) return { status: 'unsupported', details: { Error: 'MediaDevices not supported' } };
-                    if (!permissions.isGranted('microphone')) {
-                        return { status: 'error', permission: 'denied', details: { Error: isAndroid ? 'Please click "Mic" button and tap "Allow"' : 'Permission denied. Click "Mic" button above.' } };
-                    }
-                    return new Promise((resolve) => {
-                        navigator.mediaDevices.getUserMedia({ audio: true })
-                            .then(stream => {
-                                stream.getTracks().forEach(t => t.stop());
-                                navigator.mediaDevices.enumerateDevices()
-                                    .then(devices => {
-                                        const mics = devices.filter(d => d.kind === 'audioinput');
-                                        const d = { Count: mics.length };
-                                        mics.forEach((c, i) => d[`Mic${i+1}`] = c.label || 'unnamed');
-                                        resolve({ status: 'supported', permission: 'granted', details: d });
-                                    })
-                                    .catch(() => resolve({ status: 'error', details: { Error: 'Enumeration failed' } }));
-                            })
-                            .catch((e) => resolve({ status: 'error', permission: 'denied', details: { Error: e.message || 'Microphone access failed' } }));
-                    });
-                }
-            },
-            { id: 'storage', name: 'Storage', icon: 'bi-hdd-stack', category: 'Storage', permission: false, timeoutMs: 5000,
-                execute: async () => {
-                    if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
-                        return { status: 'unsupported', details: { Error: 'Storage API not supported' } };
-                    }
-                    try {
-                        const est = await navigator.storage.estimate();
-                        const d = {
-                            'Used': (est.usage / 1024 / 1024).toFixed(1) + ' MB',
-                            'Quota': (est.quota / 1024 / 1024).toFixed(1) + ' MB'
-                        };
-                        if (navigator.storage.persisted) {
-                            try { d['Persistent'] = await navigator.storage.persisted() ? '✅' : '❌'; } catch (e) {}
-                        }
-                        return { status: 'supported', details: d };
-                    } catch (e) {
-                        return { status: 'error', error: e.message, details: { Error: e.message } };
-                    }
-                }
-            },
-            { id: 'crypto', name: 'Crypto', icon: 'bi-lock', category: 'Security', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    if (!('crypto' in window) || !('getRandomValues' in window.crypto)) {
-                        return { status: 'unsupported', details: { Error: 'Crypto API missing' } };
-                    }
-                    return { status: 'supported', details: { Random: '✅', Subtle: window.crypto.subtle ? '✅' : '❌' } };
-                }
-            },
-            { id: 'webrtc', name: 'WebRTC', icon: 'bi-phone-vibrate', category: 'Network', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const h = 'RTCPeerConnection' in window || 'webkitRTCPeerConnection' in window;
-                    const hm = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-                    return { status: h ? 'supported' : 'unsupported', details: { RTCPeer: h ? '✅' : '❌', getUserMedia: hm ? '✅' : '❌' } };
-                }
-            },
-            { id: 'fullscreen', name: 'Fullscreen', icon: 'bi-arrows-fullscreen', category: 'Browser', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const supported = 'requestFullscreen' in document.documentElement;
-                    return { status: supported ? 'supported' : 'unsupported', details: { Fullscreen: supported ? '✅' : '❌' } };
-                }
-            },
-            { id: 'wakelock', name: 'Wake Lock', icon: 'bi-sun', category: 'Browser', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const supported = 'wakeLock' in navigator;
-                    return { status: supported ? 'supported' : 'unsupported', details: { WakeLock: supported ? '✅' : '❌' } };
-                }
-            },
-            { id: 'share', name: 'Share', icon: 'bi-share', category: 'Browser', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const supported = 'share' in navigator;
-                    return { status: supported ? 'supported' : 'unsupported', details: { Share: supported ? '✅' : '❌' } };
-                }
-            },
-            { id: 'vibration', name: 'Vibration', icon: 'bi-phone', category: 'Device', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const supported = 'vibrate' in navigator;
-                    return { status: supported ? 'supported' : 'unsupported', details: { Vibrate: supported ? '✅' : '❌' } };
-                }
-            },
-            { id: 'speech', name: 'Speech', icon: 'bi-mic-fill', category: 'Media', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const supported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
-                    return { status: supported ? 'supported' : 'unsupported', details: { SpeechRecog: supported ? '✅' : '❌' } };
-                }
-            },
-            { id: 'sw', name: 'Service Worker', icon: 'bi-server', category: 'PWA', permission: false, timeoutMs: 5000,
-                execute: async () => {
-                    if (!('serviceWorker' in navigator)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    try {
-                        const reg = await navigator.serviceWorker.getRegistration();
-                        return { status: 'supported', details: { Registered: reg ? '✅' : '❌', Scope: reg ? reg.scope : '—' } };
-                    } catch (e) {
-                        return { status: 'error', details: { Error: 'SW error: ' + e.message } };
-                    }
-                }
-            },
-            { id: 'notifications', name: 'Notifications', icon: 'bi-bell', category: 'Browser', permission: true, timeoutMs: 5000,
-                execute: async () => {
-                    if (!('Notification' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    let perm = Notification.permission;
-                    if (perm === 'default') {
-                        try { perm = await Notification.requestPermission(); } catch (e) { perm = 'error'; }
-                    }
-                    if (perm === 'granted') {
-                        try { new Notification('API Study', { body: 'Notifications are working!', icon: '🔔' }); } catch (e) {}
-                    }
-                    return { status: 'supported', permission: perm, details: { Permission: perm } };
-                }
-            },
-            { id: 'orientation', name: 'Screen Orientation', icon: 'bi-rotate', category: 'Device', permission: false, timeoutMs: 3000,
-                execute: async () => {
-                    if (!screen.orientation) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    try {
-                        const orient = await screen.orientation.type;
-                        return { status: 'supported', details: { Type: orient, Angle: screen.orientation.angle } };
-                    } catch { return { status: 'error', details: { Error: 'Orientation error' } }; }
-                }
-            },
-            { id: 'performance', name: 'Performance', icon: 'bi-speedometer', category: 'Performance', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    if (!('performance' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    const nav = performance.getEntriesByType('navigation')[0];
-                    const d = {};
-                    if (nav) {
-                        d['DOM Load'] = (nav.domComplete - nav.startTime).toFixed(0) + 'ms';
-                        d['Page Load'] = (nav.loadEventEnd - nav.startTime).toFixed(0) + 'ms';
-                    }
-                    if (performance.memory) d['Memory'] = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1) + ' MB';
-                    return { status: 'supported', details: d };
-                }
-            },
-            { id: 'cookies', name: 'Cookies', icon: 'bi-cookie', category: 'Storage', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const enabled = navigator.cookieEnabled;
-                    const count = document.cookie.split(';').filter(c => c.trim()).length;
-                    return { status: enabled ? 'supported' : 'unsupported', details: { Enabled: enabled ? '✅' : '❌', Count: count } };
-                }
-            },
-            { id: 'indexeddb', name: 'IndexedDB', icon: 'bi-database', category: 'Storage', permission: false, timeoutMs: 5000,
-                execute: async () => {
-                    if (!('indexedDB' in window)) return { status: 'unsupported', details: { Error: 'Not supported' } };
-                    try {
-                        const db = await new Promise((res, rej) => {
-                            const req = indexedDB.open('_test', 1);
-                            req.onsuccess = () => res(req.result);
-                            req.onerror = () => rej(req.error);
-                        });
-                        db.close();
-                        return { status: 'supported', details: { Open: '✅', Version: db.version } };
-                    } catch { return { status: 'error', details: { Error: 'IDB error' } }; }
-                }
-            },
-            { id: 'webgl', name: 'WebGL', icon: 'bi-gpu-card', category: 'Graphics', permission: false, timeoutMs: 5000,
-                execute: () => {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                        if (!gl) return { status: 'unsupported', details: { Error: 'WebGL context failed' } };
-                        const ext = gl.getSupportedExtensions();
-                        return {
-                            status: 'supported',
-                            details: {
-                                Vendor: gl.getParameter(gl.VENDOR) || '—',
-                                Renderer: gl.getParameter(gl.RENDERER) || '—',
-                                Extensions: ext ? ext.length : 0
-                            }
-                        };
-                    } catch (e) {
-                        return { status: 'error', details: { Error: e.message } };
-                    }
-                }
-            },
-            { id: 'canvas', name: 'Canvas', icon: 'bi-palette', category: 'Graphics', permission: false, timeoutMs: 3000,
-                execute: () => {
-                    const c = document.createElement('canvas');
-                    const ctx = c.getContext('2d');
-                    if (!ctx) return { status: 'unsupported', details: { Error: 'Canvas 2D not supported' } };
-                    return { status: 'supported', details: { Width: c.width, Height: c.height, '2D': '✅' } };
-                }
-            }
-        ];
-
-        // ===== APPLICATION INIT =====
-        (function init() {
-            const logger = new Logger(UI.console);
-            const theme = new ThemeManager(UI.themeToggle);
-            const device = new DeviceManager();
-            const permissions = new PermissionManager(logger, device);
-            const runner = new ModuleRunner(logger, permissions, device);
-            const renderer = new Renderer(UI.cardContainer, logger);
-            const exporter = new ExportManager(logger);
-            const chartManager = new ChartManager(UI.chartContainer, logger);
-
-            moduleDefinitions.forEach(mod => runner.register(mod));
-
-            UI.header.textContent = device.getHeaderText();
-
-            // Set up delegated mic listener once
-            runner.setupMicDelegatedListener();
-
-            permissions.onPermissionChange(() => {
-                const summary = permissions.getSummary();
-                UI.permStatus.textContent = summary.text;
-                UI.permStatus.style.color = summary.granted === summary.total ? '#22c55e' : '#eab308';
-                // Update stats after permission changes
-                const results = runner.getResults();
-                if (Object.keys(results).length > 0) {
-                    renderer.render(runner.modules, results);
-                    const filtered = renderer.getFilteredModules();
-                    chartManager.render(runner.getStats(), results, runner.modules, filtered);
-                }
-            });
-
-            // ===== PERMISSION BUTTON DELEGATION =====
-            UI.permButtonGroup.addEventListener('click', async (e) => {
-                const btn = e.target.closest('[data-perm]');
-                if (!btn) return;
-                const perm = btn.dataset.perm;
-                
-                logger.info(`👆 User clicked: ${perm}`, 'Permissions');
-                
-                if (perm === 'all') {
-                    await permissions.requestAll();
-                } else if (perm === 'camera') {
-                    await permissions.requestCamera();
-                } else if (perm === 'microphone') {
-                    await permissions.requestMicrophone();
-                } else if (perm === 'geolocation') {
-                    await permissions.requestGeolocation();
-                } else if (perm === 'notifications') {
-                    await permissions.requestNotifications();
-                } else if (perm === 'clipboard') {
-                    await permissions.requestClipboard();
-                }
-                
-                const results = runner.getResults();
-                if (Object.keys(results).length > 0) {
-                    renderer.render(runner.modules, results);
-                    const filtered = renderer.getFilteredModules();
-                    chartManager.render(runner.getStats(), results, runner.modules, filtered);
-                    document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
-                        runner.startCameraPreview(video);
-                    });
-                }
-            });
-
-            // Filter delegation
-            UI.filterContainer.addEventListener('click', (e) => {
-                const badge = e.target.closest('.filter-badge');
-                if (!badge) return;
-                document.querySelectorAll('.filter-badge').forEach(b => b.className = 'filter-badge inactive');
-                badge.className = 'filter-badge active';
-                renderer.setFilter(badge.dataset.filter);
-                // Update charts with filtered data
-                const results = runner.getResults();
-                if (Object.keys(results).length > 0) {
-                    const filtered = renderer.getFilteredModules();
-                    chartManager.render(runner.getStats(), results, runner.modules, filtered);
-                }
-            });
-
-            // ===== Debounced search =====
-            UI.search.addEventListener('input', (e) => {
-                renderer.setSearch(e.target.value);
-                // Update charts with filtered data
-                const results = runner.getResults();
-                if (Object.keys(results).length > 0) {
-                    const filtered = renderer.getFilteredModules();
-                    chartManager.render(runner.getStats(), results, runner.modules, filtered);
-                }
-            });
-
-            document.querySelectorAll('[data-export]').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    exporter.exportData(
-                        el.dataset.export,
-                        device,
-                        permissions,
-                        runner.getStats(),
-                        runner.getResults()
-                    );
-                });
-            });
-
-            UI.refreshBtn.addEventListener('click', async () => {
-                runner.cleanup();
-                chartManager.destroy();
-                await runner.runAll();
-                const results = runner.getResults();
-                renderer.render(runner.modules, results);
-                const filtered = renderer.getFilteredModules();
-                chartManager.render(runner.getStats(), results, runner.modules, filtered);
-                document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
-                    runner.startCameraPreview(video);
-                });
-            });
-
-            window.addEventListener('beforeunload', () => {
-                runner.cleanup();
-                chartManager.destroy();
-            });
-
-            window.addEventListener('pagehide', () => {
-                runner.cleanup();
-                chartManager.destroy();
-            });
-
-            function updateTimestamp() {
-                UI.footerTimestamp.textContent = new Date().toLocaleString();
-            }
-            updateTimestamp();
-            setInterval(updateTimestamp, 30000);
-
-            logger.info('🌐 Enterprise Architecture ready.', 'System');
-            setTimeout(async () => {
-                await runner.runAll();
-                const results = runner.getResults();
-                renderer.render(runner.modules, results);
-                const filtered = renderer.getFilteredModules();
-                chartManager.render(runner.getStats(), results, runner.modules, filtered);
-                document.querySelectorAll('[id^="cameraPreview_"]').forEach(video => {
-                    runner.startCameraPreview(video);
-                });
-                permissions._notify();
-            }, 500);
-
-            window.__app = { logger, theme, device, permissions, runner, renderer, exporter, chartManager };
-        })();
-    </script>
+    }
+</script>
 </body>
 </html>
