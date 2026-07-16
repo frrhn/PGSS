@@ -1,19 +1,34 @@
 // ==========================================
-// NEXUS COMMAND CENTER LOGIC
+// PHARMAFIELD MANAGER DASHBOARD LOGIC
 // ==========================================
 
-// 1. CONFIGURATION
-const SUPABASE_URL = 'https://sxpvroftqiglonpmghjp.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_922ZnL9I7l_-pkktN19CGw_5V-HlrgY'; // YOUR KEY HERE
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log("[PharmaField] Initializing Manager Dashboard...");
+
+// 1. CONFIGURATION GUARD
+const config = window.PHARMA_CONFIG;
+if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+    console.error("[PharmaField] FATAL: Configuration missing.");
+    document.getElementById('errorContainer').style.display = 'block';
+    document.getElementById('errorContainer').innerText = "FATAL ERROR: config.js is missing or invalid. Please check your repository.";
+    throw new Error("Config missing");
+}
+
+const supabase = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
 let map;
 let markers = [];
 
 // 2. INITIALIZATION
 window.onload = function() {
-    initMap();
-    loadData();
+    console.log("[PharmaField] Window loaded. Starting initialization...");
+    try {
+        initMap();
+        loadData();
+    } catch (e) {
+        console.error("[PharmaField] Init error:", e);
+        document.getElementById('errorContainer').style.display = 'block';
+        document.getElementById('errorContainer').innerText = "Initialization Error: " + e.message;
+    }
 };
 
 function initMap() {
@@ -21,8 +36,6 @@ function initMap() {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; CartoDB'
     }).addTo(map);
-    
-    // Add zoom control to bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 }
 
@@ -47,14 +60,14 @@ function showSkeletons() {
 
 // 4. DATA FETCHING
 async function loadData() {
+    console.log("[PharmaField] Fetching data from Supabase...");
     showSkeletons();
+    document.getElementById('errorContainer').style.display = 'none'; // Hide previous errors
     
-    // Clear existing map markers
     markers.forEach(m => map.removeLayer(m));
     markers = [];
 
     const refreshIcon = document.getElementById('refreshIcon');
-    refreshIcon.style.display = 'inline-block';
     refreshIcon.style.animation = 'spin 1s linear infinite';
 
     try {
@@ -63,10 +76,15 @@ async function loadData() {
             .select('*')
             .order('timestamp', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error("[PharmaField] Supabase Error:", error);
+            throw new Error(error.message);
+        }
+
+        console.log(`[PharmaField] Success! Found ${data ? data.length : 0} records.`);
 
         if (!data || data.length === 0) {
-            document.getElementById('dataTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">No field activity recorded yet.</td></tr>';
+            document.getElementById('dataTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">No field activity recorded yet.</td></tr>';
             return;
         }
 
@@ -76,13 +94,16 @@ async function loadData() {
         const today = new Date().toDateString();
         document.getElementById('todayCheckins').textContent = data.filter(row => new Date(row.timestamp).toDateString() === today).length;
 
-        // Render Table & Map
+        // Render
         renderTable(data);
         renderMap(data);
 
     } catch (error) {
-        console.error("Critical Error:", error);
-        document.getElementById('dataTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--accent-red);">Error fetching data: ${error.message}</td></tr>`;
+        console.error("[PharmaField] Critical Error:", error);
+        document.getElementById('errorContainer').style.display = 'block';
+        document.getElementById('errorContainer').innerText = "DATABASE ERROR: " + error.message + "\n\n(Hint: Check that config.js has the correct API key and that RLS policies allow reading).";
+        
+        document.getElementById('dataTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--accent-red);">Failed to load data.</td></tr>`;
     } finally {
         refreshIcon.style.animation = '';
     }
@@ -96,14 +117,12 @@ function renderTable(data) {
     data.forEach(row => {
         const dateStr = new Date(row.timestamp).toLocaleString();
         
-        // Photo Logic
         let photoHtml = '<span class="no-media">No Image</span>';
         if (row.photo_url && row.photo_url.trim() !== "") {
             const photoUrl = supabase.storage.from('proofs').getPublicUrl(row.photo_url).data.publicUrl;
             photoHtml = `<img src="${photoUrl}" class="table-thumb" onclick="openModal('${photoUrl}')" alt="Proof">`;
         }
 
-        // Audio Logic
         let audioHtml = '<span class="no-media">No Audio</span>';
         if (row.audio_url && row.audio_url.trim() !== "") {
             const audioUrl = supabase.storage.from('proofs').getPublicUrl(row.audio_url).data.publicUrl;
@@ -117,58 +136,4 @@ function renderTable(data) {
             <td><span class="coord-text">${row.latitude?.toFixed(4) || 'N/A'}, ${row.longitude?.toFixed(4) || 'N/A'}</span></td>
             <td>${photoHtml}</td>
             <td>${audioHtml}</td>
-            <td><a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="action-btn">📍 Track</a></td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function renderMap(data) {
-    const bounds = L.latLngBounds();
-    let hasValidCoords = false;
-
-    data.forEach(row => {
-        if (row.latitude && row.longitude) {
-            // Glowing Cyan Marker
-            const glowIcon = L.divIcon({
-                className: 'custom-glow-marker',
-                html: `<div style="width: 16px; height: 16px; background: #00E5FF; border-radius: 50%; box-shadow: 0 0 15px #00E5FF, 0 0 30px #00E5FF; border: 2px solid #fff;"></div>`,
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
-            });
-
-            const marker = L.marker([row.latitude, row.longitude], { icon: glowIcon })
-                .addTo(map)
-                .bindPopup(`
-                    <div style="font-family: sans-serif; padding: 4px;">
-                        <strong style="color: #00E5FF;">Agent #${row.agent_id}</strong><br>
-                        <span style="font-size: 0.8rem; color: #666;">${new Date(row.timestamp).toLocaleString()}</span>
-                    </div>
-                `);
-            
-            markers.push(marker);
-            bounds.extend([row.latitude, row.longitude]);
-            hasValidCoords = true;
-        }
-    });
-
-    if (hasValidCoords) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-    }
-}
-
-// 6. MODAL LOGIC
-function openModal(url) {
-    document.getElementById('modalImage').src = url;
-    document.getElementById('imageModal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('imageModal').classList.remove('active');
-    document.getElementById('modalImage').src = '';
-}
-
-// Add CSS for spinning refresh icon dynamically
-const style = document.createElement('style');
-style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
-document.head.appendChild(style);
+            <td><a href="https://www.google.com/maps?q=${
