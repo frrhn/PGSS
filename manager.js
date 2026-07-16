@@ -1,8 +1,8 @@
 // ==========================================
-// PHARMAFIELD MANAGER DASHBOARD (DIAGNOSTIC)
+// Farro MANAGER DASHBOARD (DIAGNOSTIC)
 // ==========================================
 
-console.log("[PharmaField] Initializing Manager Dashboard...");
+console.log("[Farro] Initializing Manager Dashboard...");
 
 // 1. CONFIGURATION GUARD
 const config = window.PHARMA_CONFIG;
