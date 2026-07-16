@@ -2,14 +2,20 @@
 // NEXUS AGENT LOGIC - ENTERPRISE HARDENED
 // ==========================================
 
+// ==========================================
+// FARRO AGENT LOGIC - ENTERPRISE HARDENED
+// ==========================================
+
 // 1. INIT GUARD & CONFIGURATION
-const config = window.__APP_CONFIG__;
+const config = window.PHARMA_CONFIG; // <-- CHANGED THIS LINE
 if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
     document.body.innerHTML = '<h1 style="color:red; padding:20px;">FATAL: Configuration missing. Check config.js</h1>';
     throw new Error("Config missing");
 }
 
 const supabaseClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+// ... (keep the rest of your agent.js exactly as it was)
 
 // 2. STATE MANAGEMENT
 let currentLat = null, currentLng = null;
