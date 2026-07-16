@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0B0F19">
-    <title>PharmaField · NEXUS Command</title>
+    <title>PharmaField · Manager Dashboard</title>
     
     <!-- External Design System -->
     <link rel="stylesheet" href="manager.css">
@@ -13,22 +13,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Configuration -->
+    <script src="config.js"></script>
 </head>
 <body>
 
     <!-- HEADER -->
-    <header class="command-header">
+    <header class="pharma-header">
         <div class="header-left">
-            <h1 class="brand-title">NEXUS COMMAND</h1>
+            <h1 class="brand-title">PharmaField</h1>
             <span class="live-indicator"><span class="live-dot"></span> LIVE MONITORING</span>
         </div>
-        <button class="nexus-btn btn-ghost btn-refresh" onclick="loadData()">
+        <button class="pharma-btn btn-ghost btn-refresh" onclick="loadData()">
             <span id="refreshIcon">🔄</span> Sync Data
         </button>
     </header>
 
     <main class="command-center">
         
+        <!-- VISIBLE ERROR CONTAINER (Hidden by default) -->
+        <div id="errorContainer" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 16px; border-radius: 12px; margin-bottom: 24px; font-family: monospace;"></div>
+
         <!-- STATS ROW -->
         <section class="stats-grid">
             <div class="stat-card">
