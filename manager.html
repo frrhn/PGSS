@@ -3,227 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚨 MANAGER DASHBOARD V6 - DIAGNOSTIC 🚨</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta name="theme-color" content="#0B0F19">
+    <title>PharmaField · NEXUS Command</title>
+    
+    <!-- External Design System -->
+    <link rel="stylesheet" href="manager.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { background: #f8fafc; color: #1e293b; font-family: 'Segoe UI', system-ui, sans-serif; }
-        .cache-buster-banner { background: #ff0000; color: #ffffff; text-align: center; font-weight: 900; font-size: 1.5rem; padding: 15px; border-bottom: 4px solid #000; }
-        .dashboard-header { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 1.5rem 0; margin-bottom: 2rem; }
-        .stat-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
-        .stat-value { font-size: 2rem; font-weight: 700; color: #1a2a6c; }
-        .stat-label { color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
-        #map { height: 400px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 2rem; }
-        .table-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
-        .thumb-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer; transition: transform 0.2s; }
-        .thumb-img:hover { transform: scale(1.1); border-color: #1a2a6c; }
-        audio { height: 35px; max-width: 200px; }
-        .loading-spinner { text-align: center; padding: 3rem; color: #64748b; }
-    </style>
 </head>
 <body>
-    <div class="cache-buster-banner">
-        🚨 VERSION 6 LOADED 🚨 DIAGNOSTIC MODE ACTIVE
-    </div>
 
-    <div class="dashboard-header">
-        <div class="container d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="mb-0"><i class="bi bi-speedometer2"></i> PharmaField Manager Dashboard</h2>
-                <p class="mb-0 opacity-75">Real-time Field Agent Monitoring & Proof of Work</p>
-            </div>
+    <!-- HEADER -->
+    <header class="command-header">
+        <div class="header-left">
+            <h1 class="brand-title">NEXUS COMMAND</h1>
+            <span class="live-indicator"><span class="live-dot"></span> LIVE MONITORING</span>
         </div>
-    </div>
+        <button class="nexus-btn btn-ghost btn-refresh" onclick="loadData()">
+            <span id="refreshIcon">🔄</span> Sync Data
+        </button>
+    </header>
 
-    <div class="container">
-        <!-- THIS BOX WILL TELL US EXACTLY WHERE IT FAILS -->
-        <div class="alert alert-light border shadow-sm mb-4" id="debugStatus">
-            <i class="bi bi-bug"></i> <strong>System Status:</strong> Initializing...
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalCheckins">0</div>
-                    <div class="stat-label">Total Check-Ins</div>
+    <main class="command-center">
+        
+        <!-- STATS ROW -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon bg-cyan">📊</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalCheckins">0</span>
+                    <span class="stat-label">Total Check-Ins</span>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
-                <div class="stat-card">
-                    <div class="stat-value" id="uniqueAgents">0</div>
-                    <div class="stat-label">Active Agents</div>
+            <div class="stat-card">
+                <div class="stat-icon bg-green">👥</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="uniqueAgents">0</span>
+                    <span class="stat-label">Active Agents</span>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
-                <div class="stat-card">
-                    <div class="stat-value" id="todayCheckins">0</div>
-                    <div class="stat-label">Today's Check-Ins</div>
+            <div class="stat-card">
+                <div class="stat-icon bg-amber">⏱️</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="todayCheckins">0</span>
+                    <span class="stat-label">Today's Activity</span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="map"></div>
+        <!-- TACTICAL MAP -->
+        <section class="glass-panel map-panel">
+            <h2 class="panel-title">🌐 Geospatial Tracking</h2>
+            <div id="commandMap"></div>
+        </section>
 
-        <div class="table-card p-3 p-md-4">
-            <h5 class="mb-3"><i class="bi bi-table"></i> Recent Field Activity</h5>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
+        <!-- DATA TABLE -->
+        <section class="glass-panel table-panel">
+            <h2 class="panel-title">📋 Field Activity Log</h2>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <th>Agent ID</th>
+                            <th>Agent</th>
                             <th>Timestamp</th>
-                            <th>Location</th>
+                            <th>Coordinates</th>
                             <th>Photo Proof</th>
                             <th>Audio Proof</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="checkinTableBody">
-                        <tr><td colspan="6" class="loading-spinner"><div class="spinner-border text-primary"></div><br>Loading data...</td></tr>
+                    <tbody id="dataTableBody">
+                        <!-- Skeleton loaders will be injected here by JS -->
                     </tbody>
                 </table>
             </div>
+        </section>
+
+    </main>
+
+    <!-- IMAGE MODAL -->
+    <div class="modal-overlay" id="imageModal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <img id="modalImage" src="" alt="Full Size Proof">
         </div>
     </div>
 
-    <div class="modal fade" id="imageModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Site Photo Proof</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center p-0">
-                    <img id="modalImage" src="" class="img-fluid" alt="Site Photo">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // WRAP EVERYTHING IN A TRY-CATCH TO CATCH SILENT CRASHES
-        try {
-            alert("✅ VERSION 6 LOADED! Check console (F12) for step-by-step diagnostics.");
-            console.log("STEP 1: Script started.");
-
-            if (typeof window.supabase === 'undefined') {
-                throw new Error("Supabase SDK failed to load! Check internet or ad-blocker.");
-            }
-            console.log("STEP 2: Supabase SDK loaded successfully.");
-
-            const SUPABASE_URL = 'https://sxpvroftqiglonpmghjp.supabase.co';
-            const SUPABASE_ANON_KEY = 'sb_publishable_922ZnL9I7l_-pkktN19CGw_5V-HlrgY'; 
-            
-            console.log("STEP 3: Initializing Supabase client...");
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log("STEP 4: Supabase client initialized.");
-
-            let map;
-            let markers = [];
-
-            function updateStatus(msg, isError = false) {
-                const el = document.getElementById('debugStatus');
-                if(el) {
-                    el.innerHTML = `<i class="bi bi-${isError ? 'exclamation-triangle-fill text-danger' : 'check-circle-fill text-success'}"></i> <strong>Status:</strong> ${msg}`;
-                    el.className = `alert ${isError ? 'alert-danger' : 'alert-success border'} shadow-sm mb-4`;
-                }
-            }
-
-            window.onload = function() {
-                console.log("STEP 5: Window loaded. Starting data fetch...");
-                updateStatus("Connecting to database...");
-                initMap();
-                loadData(supabase);
-            };
-
-            function initMap() {
-                map = L.map('map').setView([32.0724, 72.6823], 10);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
-            }
-
-            async function loadData(supabaseClient) {
-                try {
-                    updateStatus("STEP 6: Fetching records from 'checkins' table...");
-                    console.log("STEP 6: Executing Supabase query...");
-                    
-                    const { data, error } = await supabaseClient
-                        .from('checkins')
-                        .select('*')
-                        .order('timestamp', { ascending: false });
-
-                    if (error) {
-                        console.error("STEP 7: Supabase Query Error:", error);
-                        updateStatus("Database Error: " + error.message, true);
-                        return;
-                    }
-
-                    console.log("STEP 8: Data received successfully:", data);
-
-                    if (!data || data.length === 0) {
-                        updateStatus("Connected successfully, but the table is empty.", true);
-                        document.getElementById('checkinTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No check-ins found yet.</td></tr>';
-                        return;
-                    }
-
-                    updateStatus(`STEP 9: Success! Found ${data.length} record(s). Rendering...`);
-                    
-                    document.getElementById('totalCheckins').textContent = data.length;
-                    document.getElementById('uniqueAgents').textContent = new Set(data.map(row => row.agent_id)).size;
-                    const today = new Date().toDateString();
-                    document.getElementById('todayCheckins').textContent = data.filter(row => new Date(row.timestamp).toDateString() === today).length;
-
-                    const tbody = document.getElementById('checkinTableBody');
-                    tbody.innerHTML = '';
-                    
-                    data.forEach(row => {
-                        const photoUrl = row.photo_url ? supabaseClient.storage.from('proofs').getPublicUrl(row.photo_url).data.publicUrl : null;
-                        const audioUrl = row.audio_url ? supabaseClient.storage.from('proofs').getPublicUrl(row.audio_url).data.publicUrl : null;
-                        const dateStr = new Date(row.timestamp).toLocaleString();
-
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td><span class="badge bg-primary fs-6">#${row.agent_id}</span></td>
-                            <td>${dateStr}</td>
-                            <td><small class="text-muted d-block">Lat: ${row.latitude?.toFixed(4) || 'N/A'}</small><small class="text-muted">Lng: ${row.longitude?.toFixed(4) || 'N/A'}</small></td>
-                            <td>${photoUrl ? `<img src="${photoUrl}" class="thumb-img" onclick="viewImage('${photoUrl}')">` : '<span class="text-muted">No photo</span>'}</td>
-                            <td>${audioUrl ? `<audio controls src="${audioUrl}"></audio>` : '<span class="text-muted">No audio</span>'}</td>
-                            <td><a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-map"></i> Map</a></td>
-                        `;
-                        tbody.appendChild(tr);
-
-                        if (row.latitude && row.longitude) {
-                            const marker = L.marker([row.latitude, row.longitude]).addTo(map).bindPopup(`<strong>Agent #${row.agent_id}</strong><br>${dateStr}`);
-                            markers.push(marker);
-                        }
-                    });
-
-                    if (markers.length > 0) {
-                        const group = new L.featureGroup(markers);
-                        map.fitBounds(group.getBounds().pad(0.1));
-                    }
-
-                } catch (err) {
-                    console.error("STEP 9 CRITICAL ERROR:", err);
-                    updateStatus("Critical Error: " + err.message, true);
-                }
-            }
-
-            function viewImage(url) {
-                document.getElementById('modalImage').src = url;
-                new bootstrap.Modal(document.getElementById('imageModal')).show();
-            }
-
-        } catch (fatalError) {
-            console.error("FATAL INITIALIZATION ERROR:", fatalError);
-            document.getElementById('debugStatus').innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger"></i> <strong>FATAL ERROR:</strong> ${fatalError.message}`;
-            document.getElementById('debugStatus').className = "alert alert-danger shadow-sm mb-4";
-        }
-    </script>
+    <!-- External Logic -->
+    <script src="manager.js"></script>
 </body>
 </html>
