@@ -1,190 +1,81 @@
 // ==========================================
-// Farro MANAGER DASHBOARD (DIAGNOSTIC)
+// NUCLEAR DIAGNOSTIC MANAGER SCRIPT
 // ==========================================
 
-console.log("[Farro] Initializing Manager Dashboard...");
+alert("STEP 1: manager.js has started running!");
 
-// 1. CONFIGURATION GUARD
+// Check if config is loaded
 const config = window.PHARMA_CONFIG;
 if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
-    alert("FATAL ERROR: config.js is missing, not loaded, or does not contain window.PHARMA_CONFIG. Please check the file.");
+    alert("❌ STEP 2 FAILED: window.PHARMA_CONFIG is missing or incomplete!\n\nPlease check your config.js file.");
     document.getElementById('errorContainer').style.display = 'block';
-    document.getElementById('errorContainer').innerText = "FATAL ERROR: config.js is missing or invalid.";
-    throw new Error("Config missing");
+    document.getElementById('errorContainer').innerText = "CONFIG ERROR: Check config.js";
+} else {
+    alert("✅ STEP 2 PASSED: Config loaded successfully!\nURL: " + config.SUPABASE_URL);
 }
 
-console.log("[PharmaField] Config loaded. Initializing Supabase...");
-const supabase = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-
-let map;
-let markers = [];
-
-// 2. INITIALIZATION
 window.onload = function() {
-    console.log("[PharmaField] Window loaded. Starting initialization...");
-    try {
-        initMap();
-        loadData();
-    } catch (e) {
-        console.error("[PharmaField] Init error:", e);
-        alert("INITIALIZATION ERROR: " + e.message);
-        document.getElementById('errorContainer').style.display = 'block';
-        document.getElementById('errorContainer').innerText = "Initialization Error: " + e.message;
-    }
-};
-
-function initMap() {
-    map = L.map('commandMap', { zoomControl: false }).setView([32.0724, 72.6823], 10);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CartoDB'
-    }).addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-}
-
-// 3. SKELETON LOADERS
-function showSkeletons() {
-    const tbody = document.getElementById('dataTableBody');
-    let skeletonHTML = '';
-    for (let i = 0; i < 5; i++) {
-        skeletonHTML += `
-            <tr>
-                <td><div class="skeleton" style="width: 60px;"></div></td>
-                <td><div class="skeleton" style="width: 120px;"></div></td>
-                <td><div class="skeleton" style="width: 100px;"></div></td>
-                <td><div class="skeleton skeleton-circle"></div></td>
-                <td><div class="skeleton" style="width: 100px; height: 32px;"></div></td>
-                <td><div class="skeleton" style="width: 50px;"></div></td>
-            </tr>
-        `;
-    }
-    tbody.innerHTML = skeletonHTML;
-}
-
-// 4. DATA FETCHING
-async function loadData() {
-    console.log("[PharmaField] Fetching data from Supabase...");
-    showSkeletons();
-    document.getElementById('errorContainer').style.display = 'none';
+    alert("STEP 3: Window loaded. Attempting to fetch data directly from Supabase...");
     
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-
-    const refreshIcon = document.getElementById('refreshIcon');
-    refreshIcon.style.animation = 'spin 1s linear infinite';
-
-    try {
-        console.log("[PharmaField] Executing Supabase query...");
-        const { data, error } = await supabase
-            .from('checkins')
-            .select('*')
-            .order('timestamp', { ascending: false });
-
-        if (error) {
-            console.error("[PharmaField] Supabase Error:", error);
-            alert("DATABASE ERROR:\n\n" + error.message + "\n\n(Hint: Check RLS policies or API key)");
-            throw new Error(error.message);
+    // Use raw fetch to bypass any Supabase JS client issues
+    const url = config.SUPABASE_URL + '/rest/v1/checkins?select=*&order=timestamp.desc';
+    
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'apikey': config.SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + config.SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
         }
-
-        // THIS ALERT WILL TELL US EXACTLY WHAT THE DATABASE RETURNED
-        alert("DATA RECEIVED FROM DATABASE:\n\nRecords found: " + (data ? data.length : "NULL") + "\n\nCheck console (F12) for full JSON.");
+    })
+    .then(response => {
+        alert("STEP 4: Server responded with Status Code: " + response.status + "\n\n(200 means success, 401 means bad key, 403 means permission denied)");
+        if (!response.ok) {
+            throw new Error("HTTP error! status: " + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert("✅ STEP 5 PASSED: Data received!\n\nTotal Records Found: " + (data ? data.length : 0) + "\n\nCheck Console (F12) to see the data.");
         console.log("FULL DATA PAYLOAD:", data);
-
-        if (!data || data.length === 0) {
-            alert("NO DATA FOUND. The table is empty.");
-            document.getElementById('dataTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">No field activity recorded yet.</td></tr>';
-            return;
-        }
-
-        console.log("[PharmaField] Rendering table and map...");
-        renderTable(data);
-        renderMap(data);
-        console.log("[PharmaField] Rendering complete.");
-
-    } catch (error) {
-        console.error("[PharmaField] Critical Error:", error);
-        document.getElementById('errorContainer').style.display = 'block';
-        document.getElementById('errorContainer').innerText = "DATABASE ERROR: " + error.message;
-        document.getElementById('dataTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--accent-red);">Failed to load data.</td></tr>`;
-    } finally {
-        refreshIcon.style.animation = '';
-    }
-}
-
-// 5. RENDERING
-function renderTable(data) {
-    console.log("[PharmaField] renderTable called with", data.length, "rows");
-    const tbody = document.getElementById('dataTableBody');
-    tbody.innerHTML = '';
-
-    data.forEach((row, index) => {
-        console.log(`[PharmaField] Rendering row ${index + 1}:`, row);
-        const dateStr = new Date(row.timestamp).toLocaleString();
         
-        let photoHtml = '<span class="no-media">No Image</span>';
-        if (row.photo_url && row.photo_url.trim() !== "") {
-            const photoUrl = supabase.storage.from('proofs').getPublicUrl(row.photo_url).data.publicUrl;
-            photoHtml = `<img src="${photoUrl}" class="table-thumb" onclick="openModal('${photoUrl}')" alt="Proof">`;
-        }
+        // Manually update the stats to prove the JS is working
+        document.getElementById('totalCheckins').innerText = data.length;
+        
+        const uniqueAgents = new Set(data.map(row => row.agent_id)).size;
+        document.getElementById('uniqueAgents').innerText = uniqueAgents;
+        
+        const today = new Date().toDateString();
+        const todayCount = data.filter(row => new Date(row.timestamp).toDateString() === today).length;
+        document.getElementById('todayCheckins').innerText = todayCount;
 
-        let audioHtml = '<span class="no-media">No Audio</span>';
-        if (row.audio_url && row.audio_url.trim() !== "") {
-            const audioUrl = supabase.storage.from('proofs').getPublicUrl(row.audio_url).data.publicUrl;
-            audioHtml = `<audio controls src="${audioUrl}" class="table-audio"></audio>`;
-        }
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><span class="agent-badge-sm">#${row.agent_id}</span></td>
-            <td>${dateStr}</td>
-            <td><span class="coord-text">${row.latitude?.toFixed(4) || 'N/A'}, ${row.longitude?.toFixed(4) || 'N/A'}</span></td>
-            <td>${photoHtml}</td>
-            <td>${audioHtml}</td>
-            <td><a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="action-btn">📍 Track</a></td>
-        `;
-        tbody.appendChild(tr);
-    });
-    console.log("[PharmaField] Table rendering finished.");
-}
-
-function renderMap(data) {
-    const bounds = L.latLngBounds();
-    let hasValidCoords = false;
-
-    data.forEach(row => {
-        if (row.latitude && row.longitude) {
-            const glowIcon = L.divIcon({
-                className: 'custom-glow-marker',
-                html: `<div style="width: 16px; height: 16px; background: #00E5FF; border-radius: 50%; box-shadow: 0 0 15px #00E5FF, 0 0 30px #00E5FF; border: 2px solid #fff;"></div>`,
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
+        // Manually build the table
+        const tbody = document.getElementById('dataTableBody');
+        tbody.innerHTML = ''; // Clear skeletons
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No records found in database.</td></tr>';
+        } else {
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="agent-badge-sm">#${row.agent_id}</span></td>
+                    <td>${new Date(row.timestamp).toLocaleString()}</td>
+                    <td><span class="coord-text">${row.latitude}, ${row.longitude}</span></td>
+                    <td>${row.photo_url ? '✅ Photo' : '❌ No Photo'}</td>
+                    <td>${row.audio_url ? '✅ Audio' : '❌ No Audio'}</td>
+                    <td><a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="action-btn">📍 Track</a></td>
+                `;
+                tbody.appendChild(tr);
             });
-
-            const marker = L.marker([row.latitude, row.longitude], { icon: glowIcon })
-                .addTo(map)
-                .bindPopup(`<div style="font-family: sans-serif; padding: 4px;"><strong style="color: #00E5FF;">Agent #${row.agent_id}</strong><br><span style="font-size: 0.8rem; color: #666;">${new Date(row.timestamp).toLocaleString()}</span></div>`);
-            
-            markers.push(marker);
-            bounds.extend([row.latitude, row.longitude]);
-            hasValidCoords = true;
         }
+        
+        alert("✅ STEP 6 PASSED: Table and Stats updated successfully on the screen!");
+    })
+    .catch(error => {
+        alert("❌ STEP FAILED: " + error.message + "\n\nCheck Console (F12) for details.");
+        console.error("Fetch Error:", error);
+        document.getElementById('errorContainer').style.display = 'block';
+        document.getElementById('errorContainer').innerText = "FETCH ERROR: " + error.message;
     });
-
-    if (hasValidCoords) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-    }
-}
-
-function openModal(url) {
-    document.getElementById('modalImage').src = url;
-    document.getElementById('imageModal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('imageModal').classList.remove('active');
-    document.getElementById('modalImage').src = '';
-}
-
-// Dynamic CSS for refresh icon
-const style = document.createElement('style');
-style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
-document.head.appendChild(style);
+};
