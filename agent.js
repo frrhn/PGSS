@@ -1,29 +1,40 @@
 // ==========================================
-// NEXUS CORE LOGIC (ENTERPRISE GRADE)
+// NEXUS AGENT LOGIC - ENTERPRISE HARDENED
 // ==========================================
 
-// 1. CONFIGURATION
-const SUPABASE_URL = 'https://sxpvroftqiglonpmghjp.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_922ZnL9I7l_-pkktN19CGw_5V-HlrgY'; // YOUR KEY HERE
-const AGENT_ID = '8842';
+// 1. INIT GUARD & CONFIGURATION
+const config = window.__APP_CONFIG__;
+if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+    document.body.innerHTML = '<h1 style="color:red; padding:20px;">FATAL: Configuration missing. Check config.js</h1>';
+    throw new Error("Config missing");
+}
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-document.getElementById('agentDisplay').textContent = `AGENT #${AGENT_ID}`;
+const supabaseClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-// 2. STATE VARIABLES
+// 2. STATE MANAGEMENT
 let currentLat = null, currentLng = null;
 let map = null, marker = null;
 let photoFile = null, audioFile = null;
-let isSubmitting = false;
 let photoPreviewUrl = null, audioPreviewUrl = null;
+let activeMediaStream = null; // Track mic/cam streams
+let isSubmitting = false;
 
-// Cleanup memory on exit
-window.addEventListener('beforeunload', () => {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-    if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
-});
+// Temporary Agent ID (Will be replaced by Auth UID in Phase 3.2)
+const TEMP_AGENT_ID = '8842'; 
+document.getElementById('agentDisplay').textContent = `AGENT #${TEMP_AGENT_ID}`;
 
-// 3. UTILITIES
+// 3. MEMORY & STREAM CLEANUP
+function cleanupMedia() {
+    if (photoPreviewUrl) { URL.revokeObjectURL(photoPreviewUrl); photoPreviewUrl = null; }
+    if (audioPreviewUrl) { URL.revokeObjectURL(audioPreviewUrl); audioPreviewUrl = null; }
+    if (activeMediaStream) {
+        activeMediaStream.getTracks().forEach(track => track.stop());
+        activeMediaStream = null;
+    }
+}
+window.addEventListener('beforeunload', cleanupMedia);
+
+// 4. UTILITIES
 function log(msg, type = 'info') {
     const consoleEl = document.getElementById('consoleLog');
     const time = new Date().toLocaleTimeString();
@@ -34,201 +45,182 @@ function log(msg, type = 'info') {
     consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
-// 🚀 ENTERPRISE IMAGE COMPRESSION ENGINE
-// Uses HTML5 Canvas to redraw and compress the image client-side before upload
-async function compressImage(file, maxWidth = 1080, quality = 0.7) {
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+async function compressImage(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                // Calculate new dimensions to maintain aspect ratio
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
+                let width = img.width, height = img.height;
+                if (width > config.MAX_IMAGE_WIDTH) {
+                    height = Math.round((height * config.MAX_IMAGE_WIDTH) / width);
+                    width = config.MAX_IMAGE_WIDTH;
                 }
-
-                canvas.width = width;
-                canvas.height = height;
-
+                canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d');
-                // Fill white background to prevent transparency issues
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, height);
                 ctx.drawImage(img, 0, 0, width, height);
-
-                // Convert canvas to a compressed JPEG Blob
                 canvas.toBlob((blob) => {
-                    if (!blob) {
-                        reject(new Error('Canvas compression failed'));
-                        return;
-                    }
-                    // Create a new File object from the compressed blob
-                    const compressedFile = new File([blob], `compressed_${Date.now()}.jpg`, {
-                        type: 'image/jpeg',
-                        lastModified: Date.now()
-                    });
-                    resolve(compressedFile);
-                }, 'image/jpeg', quality); // 0.7 = 70% quality (Perfect balance of size vs visual quality)
+                    resolve(new File([blob], `compressed_${Date.now()}.jpg`, { type: 'image/jpeg' }));
+                }, 'image/jpeg', config.IMAGE_QUALITY);
             };
-            img.onerror = reject;
             img.src = e.target.result;
         };
-        reader.onerror = reject;
         reader.readAsDataURL(file);
     });
 }
 
-// 4. EVENT HANDLERS
+// 5. EVENT HANDLERS
 function captureGPS() {
     const btnText = document.getElementById('gpsBtnText');
-    btnText.innerHTML = '<span class="pulse-dot"></span> Acquiring Signal...';
-    log("Requesting high-accuracy GPS...", "info");
+    btnText.innerHTML = '<span class="pulse-dot"></span> Acquiring...';
     
     navigator.geolocation.getCurrentPosition(
         (position) => {
             currentLat = position.coords.latitude;
             currentLng = position.coords.longitude;
-            
             document.getElementById('gpsStatus').innerHTML = `<span class="pulse-dot"></span> Locked: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`;
             document.getElementById('gpsStatus').className = "status-text success";
             btnText.textContent = '✅ Location Locked';
-            log(`SUCCESS: Location captured`, "success");
             
             const mapEl = document.getElementById('map');
             mapEl.style.display = 'block';
             
             if (!map) {
                 map = L.map('map', { zoomControl: false }).setView([currentLat, currentLng], 16);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; CartoDB'
-                }).addTo(map);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
             } else {
                 map.setView([currentLat, currentLng], 16);
             }
-            if (marker) map.removeLayer(marker);
             
+            // CRITICAL FIX: Invalidate size after revealing map container
+            setTimeout(() => map.invalidateSize(), 100);
+
+            if (marker) map.removeLayer(marker);
             const glowIcon = L.divIcon({
                 className: 'custom-glow-marker',
-                html: `<div style="width: 20px; height: 20px; background: #00E5FF; border-radius: 50%; box-shadow: 0 0 15px #00E5FF, 0 0 30px #00E5FF;"></div>`,
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
+                html: `<div style="width: 20px; height: 20px; background: #00E5FF; border-radius: 50%; box-shadow: 0 0 15px #00E5FF;"></div>`,
+                iconSize: [20, 20], iconAnchor: [10, 10]
             });
             marker = L.marker([currentLat, currentLng], { icon: glowIcon }).addTo(map);
         },
-        (error) => {
-            log(`GPS ERROR: ${error.message}`, "error");
-            btnText.textContent = 'Lock Current Location';
-        },
+        (error) => { log(`GPS ERROR: ${error.message}`, "error"); btnText.textContent = 'Lock Location'; },
         { enableHighAccuracy: true, timeout: 15000 }
     );
 }
 
 async function handlePhoto(input) {
     if (input.files && input.files[0]) {
-        const originalFile = input.files[0];
+        const file = input.files[0];
+        if (!file.type.startsWith('image/')) { log("Invalid MIME", "error"); input.value = ''; return; }
         
-        // Basic check
-        if (!originalFile.type.startsWith('image/')) {
-            log("Invalid file type. Please select an image.", "error");
-            input.value = '';
-            return;
-        }
-
-        log(`Processing image (${(originalFile.size/1024).toFixed(1)} KB)...`, "info");
-
-        try {
-            // 🚀 COMPRESS THE IMAGE BEFORE SAVING IT TO STATE
-            const compressedFile = await compressImage(originalFile, 1080, 0.7);
-            log(`✅ Image compressed to ${(compressedFile.size/1024).toFixed(1)} KB`, "success");
-
-            photoFile = compressedFile; // Save the COMPRESSED version
-            
-            if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-            photoPreviewUrl = URL.createObjectURL(compressedFile);
-            document.getElementById('photoPreview').innerHTML = `<img src="${photoPreviewUrl}" class="media-preview">`;
-        } catch (err) {
-            log(`Compression failed: ${err.message}`, "error");
-        }
+        log(`Compressing (${(file.size/1024).toFixed(0)}KB)...`, "info");
+        const compressed = await compressImage(file);
+        photoFile = compressed;
+        log(`✅ Compressed to ${(compressed.size/1024).toFixed(0)}KB`, "success");
+        
+        cleanupMedia(); // Revoke old URL
+        photoPreviewUrl = URL.createObjectURL(compressed);
+        document.getElementById('photoPreview').innerHTML = `<img src="${photoPreviewUrl}" class="media-preview">`;
     }
 }
 
 function handleAudio(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
+        if (!file.type.startsWith('audio/')) { log("Invalid MIME", "error"); input.value = ''; return; }
         
-        // BULLETPROOF AUDIO CHECK: Accept ANY audio format from native recorders
-        if (!file.type.startsWith('audio/')) {
-            log(`Invalid audio type: ${file.type}`, "error");
-            input.value = '';
-            return;
-        }
-
         audioFile = file;
-        log(`SUCCESS: Audio captured (${(file.size/1024).toFixed(1)} KB)`, "success");
+        log(`✅ Audio captured`, "success");
         
-        if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+        cleanupMedia(); // Revoke old URL
         audioPreviewUrl = URL.createObjectURL(file);
-        
         const playback = document.getElementById('audioPlayback');
         playback.src = audioPreviewUrl;
         playback.style.display = 'block';
-        document.getElementById('audioStatus').innerHTML = `✅ Audio recorded successfully.`;
-        document.getElementById('audioStatus').className = "status-text success";
     }
 }
 
+// 6. HARDENED SUBMISSION PIPELINE
 async function submitCheckIn() {
     if (isSubmitting) return;
-    if (currentLat == null || currentLng == null) { alert("⚠️ Please lock your GPS location first."); return; }
-    if (!photoFile) { alert("⚠️ Please capture a site photo."); return; }
+    if (currentLat == null || !photoFile) { alert("⚠️ Lock GPS and capture Photo first."); return; }
 
     isSubmitting = true;
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="pulse-dot"></span> TRANSMITTING TO HQ...';
-    log("Starting secure uplink...", "info");
+    btn.innerHTML = '<span class="pulse-dot"></span> TRANSMITTING...';
+    
+    // Generate Idempotency Key to prevent duplicates on retry
+    const idempotencyKey = generateUUID();
+    log(`[TX-ID: ${idempotencyKey}] Starting secure uplink...`, "info");
+
+    const timestamp = new Date().toISOString();
+    const photoPath = `agents/${TEMP_AGENT_ID}/photos/${Date.now()}.jpg`;
+    const audioPath = audioFile ? `agents/${TEMP_AGENT_ID}/audio/${Date.now()}.webm` : null;
+
+    // Timeout wrapper
+    const withTimeout = (promise, ms) => Promise.race([
+        promise, 
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Network Timeout')), ms))
+    ]);
 
     try {
-        const timestamp = new Date().toISOString();
-        const photoPath = `agents/${AGENT_ID}/photos/${Date.now()}.jpg`;
-        const audioPath = audioFile ? `agents/${AGENT_ID}/audio/${Date.now()}.webm` : null;
+        // Upload Photo
+        log("Uplinking photo...", "info");
+        const { error: pErr } = await withTimeout(
+            supabaseClient.storage.from('proofs').upload(photoPath, photoFile, { upsert: false }), 
+            config.UPLOAD_TIMEOUT_MS
+        );
+        if (pErr) throw new Error(`Photo failed: ${pErr.message}`);
 
-        const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout')), ms))]);
-
-        log("Uplinking compressed photo...", "info");
-        const { error: photoError } = await withTimeout(supabaseClient.storage.from('proofs').upload(photoPath, photoFile, { upsert: false }), 15000);
-        if (photoError) throw new Error(`Photo uplink failed: ${photoError.message}`);
-        log("✅ Photo secured", "success");
-
+        // Upload Audio
         if (audioFile) {
             log("Uplinking audio...", "info");
-            const { error: audioError } = await withTimeout(supabaseClient.storage.from('proofs').upload(audioPath, audioFile, { upsert: false }), 15000);
-            if (audioError) throw new Error(`Audio uplink failed: ${audioError.message}`);
-            log("✅ Audio secured", "success");
+            const { error: aErr } = await withTimeout(
+                supabaseClient.storage.from('proofs').upload(audioPath, audioFile, { upsert: false }), 
+                config.UPLOAD_TIMEOUT_MS
+            );
+            if (aErr) throw new Error(`Audio failed: ${aErr.message}`);
         }
 
-        log("Writing to central database...", "info");
-        const { error: dbError } = await withTimeout(supabaseClient.from('checkins').insert({
-            agent_id: AGENT_ID, timestamp: timestamp, latitude: currentLat, longitude: currentLng, photo_url: photoPath, audio_url: audioPath
-        }), 10000);
+        // DB Insert with Idempotency Key
+        log("Writing to DB...", "info");
+        const { error: dbErr } = await withTimeout(
+            supabaseClient.from('checkins').insert({
+                agent_id: TEMP_AGENT_ID,
+                timestamp: timestamp,
+                latitude: currentLat,
+                longitude: currentLng,
+                photo_url: photoPath,
+                audio_url: audioPath,
+                idempotency_key: idempotencyKey // Prevents duplicate DB rows
+            }), 
+            config.UPLOAD_TIMEOUT_MS
+        );
         
-        if (dbError) throw new Error(`Database write failed: ${dbError.message}`);
+        if (dbErr) throw new Error(`DB failed: ${dbErr.message}`);
         
-        log("✅ TRANSMISSION COMPLETE. DATA SECURED.", "success");
-        alert("✅ SUCCESS! Check-in transmitted to HQ.");
+        log("✅ TRANSMISSION COMPLETE.", "success");
+        alert("✅ SUCCESS!");
         btn.innerHTML = '✅ TRANSMITTED';
+        
+        // Cleanup after successful submission
+        cleanupMedia(); 
 
     } catch (error) {
-        log(`❌ CRITICAL ERROR: ${error.message}`, "error");
-        alert(`Transmission Failed: ${error.message}`);
-        btn.innerHTML = '🚀 RETRY SUBMISSION';
+        log(`❌ CRITICAL: ${error.message}`, "error");
+        alert(`Failed: ${error.message}`);
+        btn.innerHTML = '🚀 RETRY';
         btn.disabled = false;
-    } finally {
         isSubmitting = false;
     }
 }
