@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚨 MANAGER DASHBOARD V5 - CACHE BUSTER 🚨</title>
+    <title>🚨 MANAGER DASHBOARD V6 - DIAGNOSTIC 🚨</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -25,9 +25,8 @@
     </style>
 </head>
 <body>
-    <!-- UNDENIABLE CACHE BUSTER BANNER -->
     <div class="cache-buster-banner">
-        🚨 VERSION 5 LOADED 🚨 IF YOU SEE THIS RED BAR, YOUR BROWSER CACHE IS CLEARED!
+        🚨 VERSION 6 LOADED 🚨 DIAGNOSTIC MODE ACTIVE
     </div>
 
     <div class="dashboard-header">
@@ -36,11 +35,11 @@
                 <h2 class="mb-0"><i class="bi bi-speedometer2"></i> PharmaField Manager Dashboard</h2>
                 <p class="mb-0 opacity-75">Real-time Field Agent Monitoring & Proof of Work</p>
             </div>
-            <button class="btn btn-outline-light" onclick="loadData()"><i class="bi bi-arrow-clockwise"></i> Refresh Data</button>
         </div>
     </div>
 
     <div class="container">
+        <!-- THIS BOX WILL TELL US EXACTLY WHERE IT FAILS -->
         <div class="alert alert-light border shadow-sm mb-4" id="debugStatus">
             <i class="bi bi-bug"></i> <strong>System Status:</strong> Initializing...
         </div>
@@ -106,107 +105,124 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // THIS ALERT WILL FIRE IMMEDIATELY IF THE NEW CODE IS LOADED
-        alert("✅ VERSION 5 LOADED! Cache is cleared. Attempting to load data...");
-        console.log("Manager Dashboard V5 Script Started");
+        // WRAP EVERYTHING IN A TRY-CATCH TO CATCH SILENT CRASHES
+        try {
+            alert("✅ VERSION 6 LOADED! Check console (F12) for step-by-step diagnostics.");
+            console.log("STEP 1: Script started.");
 
-        const SUPABASE_URL = 'https://sxpvroftqiglonpmghjp.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_922ZnL9I7l_-pkktN19CGw_5V-HlrgY'; 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let map;
-        let markers = [];
-
-        function updateStatus(msg, isError = false) {
-            const el = document.getElementById('debugStatus');
-            if(el) {
-                el.innerHTML = `<i class="bi bi-${isError ? 'exclamation-triangle-fill text-danger' : 'check-circle-fill text-success'}"></i> <strong>Status:</strong> ${msg}`;
-                el.className = `alert ${isError ? 'alert-danger' : 'alert-success border'} shadow-sm mb-4`;
+            if (typeof window.supabase === 'undefined') {
+                throw new Error("Supabase SDK failed to load! Check internet or ad-blocker.");
             }
-        }
+            console.log("STEP 2: Supabase SDK loaded successfully.");
 
-        window.onload = function() {
-            console.log("Window loaded, initializing map and data...");
-            updateStatus("Connecting to database...");
-            initMap();
-            loadData();
-        };
+            const SUPABASE_URL = 'https://sxpvroftqiglonpmghjp.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_922ZnL9I7l_-pkktN19CGw_5V-HlrgY'; 
+            
+            console.log("STEP 3: Initializing Supabase client...");
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log("STEP 4: Supabase client initialized.");
 
-        function initMap() {
-            map = L.map('map').setView([32.0724, 72.6823], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-        }
+            let map;
+            let markers = [];
 
-        async function loadData() {
-            const tbody = document.getElementById('checkinTableBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="loading-spinner"><div class="spinner-border text-primary"></div><br>Loading data...</td></tr>';
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-
-            try {
-                updateStatus("Fetching records from 'checkins' table...");
-                const { data, error } = await supabase.from('checkins').select('*').order('timestamp', { ascending: false });
-
-                if (error) {
-                    console.error("Supabase Error:", error);
-                    updateStatus("Database Error: " + error.message, true);
-                    throw error;
+            function updateStatus(msg, isError = false) {
+                const el = document.getElementById('debugStatus');
+                if(el) {
+                    el.innerHTML = `<i class="bi bi-${isError ? 'exclamation-triangle-fill text-danger' : 'check-circle-fill text-success'}"></i> <strong>Status:</strong> ${msg}`;
+                    el.className = `alert ${isError ? 'alert-danger' : 'alert-success border'} shadow-sm mb-4`;
                 }
+            }
 
-                console.log("Data received:", data);
+            window.onload = function() {
+                console.log("STEP 5: Window loaded. Starting data fetch...");
+                updateStatus("Connecting to database...");
+                initMap();
+                loadData(supabase);
+            };
 
-                if (!data || data.length === 0) {
-                    updateStatus("Connected successfully, but the table is empty.", true);
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No check-ins found yet.</td></tr>';
-                    return;
-                }
+            function initMap() {
+                map = L.map('map').setView([32.0724, 72.6823], 10);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+            }
 
-                updateStatus(`Success! Found ${data.length} record(s). Rendering dashboard...`);
-                
-                document.getElementById('totalCheckins').textContent = data.length;
-                document.getElementById('uniqueAgents').textContent = new Set(data.map(row => row.agent_id)).size;
-                const today = new Date().toDateString();
-                document.getElementById('todayCheckins').textContent = data.filter(row => new Date(row.timestamp).toDateString() === today).length;
+            async function loadData(supabaseClient) {
+                try {
+                    updateStatus("STEP 6: Fetching records from 'checkins' table...");
+                    console.log("STEP 6: Executing Supabase query...");
+                    
+                    const { data, error } = await supabaseClient
+                        .from('checkins')
+                        .select('*')
+                        .order('timestamp', { ascending: false });
 
-                tbody.innerHTML = '';
-                data.forEach(row => {
-                    const photoUrl = row.photo_url ? supabase.storage.from('proofs').getPublicUrl(row.photo_url).data.publicUrl : null;
-                    const audioUrl = row.audio_url ? supabase.storage.from('proofs').getPublicUrl(row.audio_url).data.publicUrl : null;
-                    const dateStr = new Date(row.timestamp).toLocaleString();
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><span class="badge bg-primary fs-6">#${row.agent_id}</span></td>
-                        <td>${dateStr}</td>
-                        <td><small class="text-muted d-block">Lat: ${row.latitude?.toFixed(4) || 'N/A'}</small><small class="text-muted">Lng: ${row.longitude?.toFixed(4) || 'N/A'}</small></td>
-                        <td>${photoUrl ? `<img src="${photoUrl}" class="thumb-img" onclick="viewImage('${photoUrl}')">` : '<span class="text-muted">No photo</span>'}</td>
-                        <td>${audioUrl ? `<audio controls src="${audioUrl}"></audio>` : '<span class="text-muted">No audio</span>'}</td>
-                        <td><a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-map"></i> Map</a></td>
-                    `;
-                    tbody.appendChild(tr);
-
-                    if (row.latitude && row.longitude) {
-                        const marker = L.marker([row.latitude, row.longitude]).addTo(map).bindPopup(`<strong>Agent #${row.agent_id}</strong><br>${dateStr}`);
-                        markers.push(marker);
+                    if (error) {
+                        console.error("STEP 7: Supabase Query Error:", error);
+                        updateStatus("Database Error: " + error.message, true);
+                        return;
                     }
-                });
 
-                if (markers.length > 0) {
-                    const group = new L.featureGroup(markers);
-                    map.fitBounds(group.getBounds().pad(0.1));
+                    console.log("STEP 8: Data received successfully:", data);
+
+                    if (!data || data.length === 0) {
+                        updateStatus("Connected successfully, but the table is empty.", true);
+                        document.getElementById('checkinTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No check-ins found yet.</td></tr>';
+                        return;
+                    }
+
+                    updateStatus(`STEP 9: Success! Found ${data.length} record(s). Rendering...`);
+                    
+                    document.getElementById('totalCheckins').textContent = data.length;
+                    document.getElementById('uniqueAgents').textContent = new Set(data.map(row => row.agent_id)).size;
+                    const today = new Date().toDateString();
+                    document.getElementById('todayCheckins').textContent = data.filter(row => new Date(row.timestamp).toDateString() === today).length;
+
+                    const tbody = document.getElementById('checkinTableBody');
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(row => {
+                        const photoUrl = row.photo_url ? supabaseClient.storage.from('proofs').getPublicUrl(row.photo_url).data.publicUrl : null;
+                        const audioUrl = row.audio_url ? supabaseClient.storage.from('proofs').getPublicUrl(row.audio_url).data.publicUrl : null;
+                        const dateStr = new Date(row.timestamp).toLocaleString();
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span class="badge bg-primary fs-6">#${row.agent_id}</span></td>
+                            <td>${dateStr}</td>
+                            <td><small class="text-muted d-block">Lat: ${row.latitude?.toFixed(4) || 'N/A'}</small><small class="text-muted">Lng: ${row.longitude?.toFixed(4) || 'N/A'}</small></td>
+                            <td>${photoUrl ? `<img src="${photoUrl}" class="thumb-img" onclick="viewImage('${photoUrl}')">` : '<span class="text-muted">No photo</span>'}</td>
+                            <td>${audioUrl ? `<audio controls src="${audioUrl}"></audio>` : '<span class="text-muted">No audio</span>'}</td>
+                            <td><a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-map"></i> Map</a></td>
+                        `;
+                        tbody.appendChild(tr);
+
+                        if (row.latitude && row.longitude) {
+                            const marker = L.marker([row.latitude, row.longitude]).addTo(map).bindPopup(`<strong>Agent #${row.agent_id}</strong><br>${dateStr}`);
+                            markers.push(marker);
+                        }
+                    });
+
+                    if (markers.length > 0) {
+                        const group = new L.featureGroup(markers);
+                        map.fitBounds(group.getBounds().pad(0.1));
+                    }
+
+                } catch (err) {
+                    console.error("STEP 9 CRITICAL ERROR:", err);
+                    updateStatus("Critical Error: " + err.message, true);
                 }
-
-            } catch (error) {
-                console.error("Critical Error:", error);
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Error: ${error.message}</td></tr>`;
             }
-        }
 
-        function viewImage(url) {
-            document.getElementById('modalImage').src = url;
-            new bootstrap.Modal(document.getElementById('imageModal')).show();
+            function viewImage(url) {
+                document.getElementById('modalImage').src = url;
+                new bootstrap.Modal(document.getElementById('imageModal')).show();
+            }
+
+        } catch (fatalError) {
+            console.error("FATAL INITIALIZATION ERROR:", fatalError);
+            document.getElementById('debugStatus').innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger"></i> <strong>FATAL ERROR:</strong> ${fatalError.message}`;
+            document.getElementById('debugStatus').className = "alert alert-danger shadow-sm mb-4";
         }
     </script>
 </body>
