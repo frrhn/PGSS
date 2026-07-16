@@ -3,83 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*, geolocation=*">
+    <!-- Fallback for browsers that still read meta permissions -->
+    <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(self), geolocation=(self)">
     <meta name="theme-color" content="#0B0F19">
     <title>PharmaField · NEXUS Agent</title>
     
-    <!-- External Design System -->
     <link rel="stylesheet" href="styles.css">
-    
-    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Config loaded BEFORE app logic -->
+    <script src="config.js"></script>
 </head>
 <body>
-
-    <!-- HEADER -->
     <div class="nexus-header">
         <div class="brand-title">PHARMAFIELD</div>
-        <div class="agent-badge" id="agentDisplay">AGENT #...</div>
+        <div class="agent-badge" id="agentDisplay">INITIALIZING...</div>
     </div>
 
     <div class="main-content">
-        
-        <!-- 1. GPS CARD -->
         <div class="nexus-card">
-            <div class="card-title">
-                <div class="icon icon-geo">📍</div>
-                Site Verification (GPS)
-            </div>
-            <button class="nexus-btn btn-primary" onclick="captureGPS()">
+            <div class="card-title"><div class="icon icon-geo">📍</div>Site Verification</div>
+            <button class="nexus-btn btn-primary" id="gpsBtn" onclick="captureGPS()">
                 <span id="gpsBtnText">Lock Current Location</span>
             </button>
             <div id="gpsStatus" class="status-text">Waiting for satellite lock...</div>
             <div id="map"></div>
         </div>
 
-        <!-- 2. CAMERA CARD -->
         <div class="nexus-card">
-            <div class="card-title">
-                <div class="icon icon-cam">📷</div>
-                Site Photo Proof
-            </div>
+            <div class="card-title"><div class="icon icon-cam">📷</div>Site Photo Proof</div>
             <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handlePhoto(this)">
-            <button class="nexus-btn btn-ghost" onclick="document.getElementById('cameraInput').click()">
-                Open Camera / Select Photo
-            </button>
+            <button class="nexus-btn btn-ghost" onclick="document.getElementById('cameraInput').click()">Open Camera</button>
             <div id="photoPreview"></div>
         </div>
 
-        <!-- 3. AUDIO CARD -->
         <div class="nexus-card">
-            <div class="card-title">
-                <div class="icon icon-mic">🎙️</div>
-                Client Conversation Summary
-            </div>
+            <div class="card-title"><div class="icon icon-mic">🎙️</div>Client Summary</div>
             <input type="file" id="micInput" accept="audio/*" capture="microphone" style="display: none;" onchange="handleAudio(this)">
-            <button class="nexus-btn btn-ghost" onclick="document.getElementById('micInput').click()">
-                Record Native Audio
-            </button>
+            <button class="nexus-btn btn-ghost" onclick="document.getElementById('micInput').click()">Record Audio</button>
             <div id="audioStatus" class="status-text">No audio recorded.</div>
             <audio id="audioPlayback" controls style="display:none;"></audio>
         </div>
 
-        <!-- CONSOLE LOG -->
         <div class="console-log" id="consoleLog">
-            <div class="log-entry info">[SYS] NEXUS OS Initialized. Awaiting input...</div>
+            <div class="log-entry info">[SYS] Booting NEXUS OS...</div>
         </div>
-
     </div>
 
-    <!-- STICKY SUBMIT BAR -->
     <div class="submit-bar">
-        <button class="nexus-btn btn-submit" id="submitBtn" onclick="submitCheckIn()">
-            🚀 SUBMIT TO HQ
-        </button>
+        <button class="nexus-btn btn-submit" id="submitBtn" onclick="submitCheckIn()">🚀 SUBMIT TO HQ</button>
     </div>
 
-    <!-- External Logic (Loaded at the end to ensure DOM is ready) -->
     <script src="agent.js"></script>
 </body>
 </html>
