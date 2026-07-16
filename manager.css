@@ -1,5 +1,5 @@
 /* =========================================
-   NEXUS COMMAND CENTER DESIGN SYSTEM
+   PHARMAFIELD ENTERPRISE DESIGN SYSTEM
    ========================================= */
 :root {
     --bg-base: #0B0F19;
@@ -29,7 +29,7 @@ body {
 }
 
 /* Header */
-.command-header {
+.pharma-header {
     padding: 20px 32px;
     display: flex;
     justify-content: space-between;
@@ -60,7 +60,7 @@ body {
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* Buttons */
-.nexus-btn {
+.pharma-btn {
     padding: 10px 20px; border-radius: 8px; border: none;
     font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
 }
@@ -142,7 +142,7 @@ body {
 }
 .table-thumb:hover { transform: scale(1.1); border-color: var(--accent-cyan); }
 .table-audio { filter: invert(1) hue-rotate(180deg); height: 32px; width: 150px; }
-.no-media { color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+.no-media { color: var(--text-secondary); font-size: 0.8rem; font-style: italic; }
 
 .action-btn {
     background: rgba(16, 185, 129, 0.1); color: var(--accent-green);
@@ -179,12 +179,4 @@ body {
 .modal-close {
     position: absolute; top: -15px; right: -15px; width: 36px; height: 36px;
     background: var(--accent-red); color: white; border: none; border-radius: 50%;
-    font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .command-center { padding: 16px; }
-    .command-header { padding: 16px; flex-direction: column; gap: 12px; }
-    #commandMap { height: 300px; }
-}
+    font-size: 1.2rem
