@@ -1,104 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0B0F19">
-    <title>Farro · Manager Dashboard</title>
-    
-    <!-- External Design System -->
+    <title>PharmaField · Command Center</title>
     <link rel="stylesheet" href="manager.css">
-    
-    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Configuration -->
     <script src="config.js"></script>
 </head>
 <body>
 
-    <!-- HEADER -->
-    <header class="pharma-header">
-        <div class="header-left">
-            <h1 class="brand-title">Farro</h1>
-            <span class="live-indicator"><span class="live-dot"></span> LIVE MONITORING</span>
+    <header class="cmd-header">
+        <div class="cmd-brand">🛡️ PHARMAFIELD <span class="cmd-sub">COMMAND CENTER</span></div>
+        <div class="cmd-actions">
+            <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+            <button class="sync-btn" onclick="syncAll()">🔄 Sync Data</button>
         </div>
-        <button class="pharma-btn btn-ghost btn-refresh" onclick="loadData()">
-            <span id="refreshIcon">🔄</span> Sync Data
-        </button>
     </header>
 
-    <main class="command-center">
+    <!-- TAB NAVIGATION -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" onclick="showTab('dashboard', this)">📊 Field Activity</button>
+        <button class="tab-btn" onclick="showTab('sos', this)">🚨 SOS Alerts</button>
+        <button class="tab-btn" onclick="showTab('devices', this)">📱 Device Registry</button>
+        <button class="tab-btn" onclick="showTab('reports', this)">📁 HR Reports</button>
+    </nav>
+
+    <main class="cmd-main">
         
-        <!-- VISIBLE ERROR CONTAINER (Hidden by default) -->
-        <div id="errorContainer" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 16px; border-radius: 12px; margin-bottom: 24px; font-family: monospace;"></div>
-
-        <!-- STATS ROW -->
-        <section class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon bg-cyan">📊</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="totalCheckins">0</span>
-                    <span class="stat-label">Total Check-Ins</span>
-                </div>
+        <!-- TAB 1: DASHBOARD -->
+        <section id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card"><span class="stat-val" id="totalCheckins">0</span><span class="stat-lbl">Total Check-Ins</span></div>
+                <div class="stat-card"><span class="stat-val" id="uniqueAgents">0</span><span class="stat-lbl">Active Agents</span></div>
+                <div class="stat-card"><span class="stat-val" id="todayCheckins">0</span><span class="stat-lbl">Today's Activity</span></div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon bg-green">👥</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="uniqueAgents">0</span>
-                    <span class="stat-label">Active Agents</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon bg-amber">⏱️</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="todayCheckins">0</span>
-                    <span class="stat-label">Today's Activity</span>
-                </div>
+            <div class="glass-panel"><h3>🌐 Geospatial Tracking</h3><div id="commandMap"></div></div>
+            <div class="glass-panel">
+                <h3>📋 Activity Log</h3>
+                <div class="table-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Time</th><th>Coords</th><th>Media</th><th>Actions</th></tr></thead><tbody id="dataTableBody"></tbody></table></div>
             </div>
         </section>
 
-        <!-- TACTICAL MAP -->
-        <section class="glass-panel map-panel">
-            <h2 class="panel-title">🌐 Geospatial Tracking</h2>
-            <div id="commandMap"></div>
+        <!-- TAB 2: SOS -->
+        <section id="sos" class="tab-content" style="display:none;">
+            <div class="glass-panel sos-panel">
+                <h3>🚨 Live Emergency Alerts</h3>
+                <p class="sub-text">Real-time distress signals from the field.</p>
+                <div class="table-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Time</th><th>Exact Location</th><th>Status</th></tr></thead><tbody id="sosTableBody"></tbody></table></div>
+            </div>
         </section>
 
-        <!-- DATA TABLE -->
-        <section class="glass-panel table-panel">
-            <h2 class="panel-title">📋 Field Activity Log</h2>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Agent</th>
-                            <th>Timestamp</th>
-                            <th>Coordinates</th>
-                            <th>Photo Proof</th>
-                            <th>Audio Proof</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataTableBody">
-                        <!-- Skeleton loaders will be injected here by JS -->
-                    </tbody>
-                </table>
+        <!-- TAB 3: DEVICES -->
+        <section id="devices" class="tab-content" style="display:none;">
+            <div class="glass-panel">
+                <h3>📱 Device Registry & Management</h3>
+                <div class="reg-form">
+                    <input type="text" id="regName" placeholder="Employee Name">
+                    <input type="text" id="regPhone" placeholder="Phone Number">
+                    <input type="text" id="regFP" placeholder="Device Android ID">
+                    <button onclick="registerDevice()">Register Device</button>
+                </div>
+                <div class="table-wrap"><table class="data-table"><thead><tr><th>Employee</th><th>Phone</th><th>Device ID</th><th>Status</th></tr></thead><tbody id="deviceTableBody"></tbody></table></div>
+            </div>
+        </section>
+
+        <!-- TAB 4: REPORTS -->
+        <section id="reports" class="tab-content" style="display:none;">
+            <div class="glass-panel report-panel">
+                <h3>📁 Automated HR Reporting</h3>
+                <p>Export comprehensive field data for payroll and performance reviews.</p>
+                <button class="export-btn" onclick="exportCSV()">📥 Export Monthly Check-ins (CSV)</button>
             </div>
         </section>
 
     </main>
 
-    <!-- IMAGE MODAL -->
-    <div class="modal-overlay" id="imageModal" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="closeModal()">✕</button>
-            <img id="modalImage" src="" alt="Full Size Proof">
-        </div>
-    </div>
-
-    <!-- External Logic -->
     <script src="manager.js"></script>
 </body>
 </html>
