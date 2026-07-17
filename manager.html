@@ -14,7 +14,6 @@
 </head>
 <body>
 
-    <!-- HEADER -->
     <header class="cmd-header">
         <div class="cmd-brand">🛡️ PHARMAFIELD <span class="cmd-sub">COMMAND CENTER</span></div>
         <div class="cmd-actions">
@@ -23,7 +22,6 @@
         </div>
     </header>
 
-    <!-- TAB NAVIGATION -->
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="showTab('dashboard', this)">📊 Field Activity</button>
         <button class="tab-btn" onclick="showTab('sos', this)">🚨 SOS Alerts</button>
@@ -33,7 +31,6 @@
     </nav>
 
     <main class="cmd-main">
-        
         <!-- TAB 1: DASHBOARD -->
         <section id="dashboard" class="tab-content active">
             <div class="stats-grid">
@@ -41,27 +38,13 @@
                 <div class="stat-card"><span class="stat-val" id="uniqueAgents">0</span><span class="stat-lbl">Active Agents</span></div>
                 <div class="stat-card"><span class="stat-val" id="todayCheckins">0</span><span class="stat-lbl">Today's Activity</span></div>
             </div>
-            <div class="glass-panel">
-                <h3>🌐 Geospatial Tracking</h3>
-                <div id="commandMap"></div>
-            </div>
+            <div class="glass-panel"><h3>🌐 Geospatial Tracking</h3><div id="commandMap"></div></div>
             <div class="glass-panel">
                 <h3>📋 Activity Log</h3>
                 <div class="table-wrap">
                     <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Agent</th>
-                                <th>Time</th>
-                                <th>Coords</th>
-                                <th>Compliance</th>
-                                <th>Media</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dataTableBody">
-                            <tr><td colspan="6" style="text-align:center; padding:20px;">Loading data...</td></tr>
-                        </tbody>
+                        <thead><tr><th>Agent</th><th>Time</th><th>Coords</th><th>Compliance</th><th>Media</th><th>Actions</th></tr></thead>
+                        <tbody id="dataTableBody"><tr><td colspan="6" style="text-align:center; padding:20px;">Loading data...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -71,13 +54,11 @@
         <section id="sos" class="tab-content" style="display:none;">
             <div class="glass-panel sos-panel">
                 <h3>🚨 Live Emergency Alerts</h3>
-                <p class="sub-text">Real-time distress signals from the field. Dashboard will flash red when an SOS is triggered.</p>
+                <p class="sub-text">Real-time distress signals. Dashboard will flash red when an SOS is triggered.</p>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead><tr><th>Agent</th><th>Time</th><th>Exact Location</th><th>Status</th></tr></thead>
-                        <tbody id="sosTableBody">
-                            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading alerts...</td></tr>
-                        </tbody>
+                        <tbody id="sosTableBody"><tr><td colspan="4" style="text-align:center; padding:20px;">Loading alerts...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -96,9 +77,7 @@
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead><tr><th>Employee</th><th>Phone</th><th>Device ID</th><th>Status</th></tr></thead>
-                        <tbody id="deviceTableBody">
-                            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading devices...</td></tr>
-                        </tbody>
+                        <tbody id="deviceTableBody"><tr><td colspan="4" style="text-align:center; padding:20px;">Loading devices...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -123,10 +102,8 @@
                 </div>
             </div>
         </section>
-
     </main>
 
-    <!-- External Logic -->
     <script src="manager.js"></script>
 </body>
 </html>
