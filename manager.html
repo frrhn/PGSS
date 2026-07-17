@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PharmaField · Command Center</title>
     <link rel="stylesheet" href="manager.css">
+    
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
+    <!-- HEADER -->
     <header class="cmd-header">
         <div class="cmd-brand">🛡️ PHARMAFIELD <span class="cmd-sub">COMMAND CENTER</span></div>
         <div class="cmd-actions">
@@ -26,6 +29,7 @@
         <button class="tab-btn" onclick="showTab('sos', this)">🚨 SOS Alerts</button>
         <button class="tab-btn" onclick="showTab('devices', this)">📱 Device Registry</button>
         <button class="tab-btn" onclick="showTab('reports', this)">📁 HR Reports</button>
+        <button class="tab-btn" onclick="showTab('analytics', this)">📈 Analytics</button>
     </nav>
 
     <main class="cmd-main">
@@ -37,10 +41,29 @@
                 <div class="stat-card"><span class="stat-val" id="uniqueAgents">0</span><span class="stat-lbl">Active Agents</span></div>
                 <div class="stat-card"><span class="stat-val" id="todayCheckins">0</span><span class="stat-lbl">Today's Activity</span></div>
             </div>
-            <div class="glass-panel"><h3>🌐 Geospatial Tracking</h3><div id="commandMap"></div></div>
+            <div class="glass-panel">
+                <h3>🌐 Geospatial Tracking</h3>
+                <div id="commandMap"></div>
+            </div>
             <div class="glass-panel">
                 <h3>📋 Activity Log</h3>
-                <div class="table-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Time</th><th>Coords</th><th>Media</th><th>Actions</th></tr></thead><tbody id="dataTableBody"></tbody></table></div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Agent</th>
+                                <th>Time</th>
+                                <th>Coords</th>
+                                <th>Compliance</th>
+                                <th>Media</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <tr><td colspan="6" style="text-align:center; padding:20px;">Loading data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -48,8 +71,15 @@
         <section id="sos" class="tab-content" style="display:none;">
             <div class="glass-panel sos-panel">
                 <h3>🚨 Live Emergency Alerts</h3>
-                <p class="sub-text">Real-time distress signals from the field.</p>
-                <div class="table-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Time</th><th>Exact Location</th><th>Status</th></tr></thead><tbody id="sosTableBody"></tbody></table></div>
+                <p class="sub-text">Real-time distress signals from the field. Dashboard will flash red when an SOS is triggered.</p>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Agent</th><th>Time</th><th>Exact Location</th><th>Status</th></tr></thead>
+                        <tbody id="sosTableBody">
+                            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading alerts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -63,7 +93,14 @@
                     <input type="text" id="regFP" placeholder="Device Android ID">
                     <button onclick="registerDevice()">Register Device</button>
                 </div>
-                <div class="table-wrap"><table class="data-table"><thead><tr><th>Employee</th><th>Phone</th><th>Device ID</th><th>Status</th></tr></thead><tbody id="deviceTableBody"></tbody></table></div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Employee</th><th>Phone</th><th>Device ID</th><th>Status</th></tr></thead>
+                        <tbody id="deviceTableBody">
+                            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading devices...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -76,8 +113,20 @@
             </div>
         </section>
 
+        <!-- TAB 5: ANALYTICS -->
+        <section id="analytics" class="tab-content" style="display:none;">
+            <div class="glass-panel">
+                <h3>📈 Compliance & Performance Analytics</h3>
+                <div class="charts-grid">
+                    <div class="chart-box"><canvas id="complianceChart"></canvas></div>
+                    <div class="chart-box"><canvas id="activityChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
+    <!-- External Logic -->
     <script src="manager.js"></script>
 </body>
 </html>
